@@ -49,12 +49,6 @@ class MessageHandler(object):
             return
 
         if event_action == "posted":
-            if post.get("data", {}).get("post"):
-                dp = json.loads(post["data"]["post"])
-                if self.ignore_own_msg is True and dp.get("user_id"):
-                    if self.driver.user_id == dp["user_id"]:
-                        return
-
             self._handle_post(post)
 
     def _handle_post(self, post):
