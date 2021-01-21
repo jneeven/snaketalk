@@ -32,10 +32,6 @@ class MessageHandler(object):
         # This is blocking, will loop forever
         self.driver.init_websocket(self.handle_event)
 
-    @staticmethod
-    def get_sender(msg):
-        return msg.get("data", {}).get("sender_name", "").strip().strip("@")
-
     def _should_ignore(self, message):
         # Ignore message from senders specified in settings, and maybe from ourself
         return (
