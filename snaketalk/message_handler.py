@@ -1,9 +1,12 @@
 import asyncio
 import json
 import re
+from collections import defaultdict
+from typing import Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.message import Message
+from snaketalk.plugins import Plugin
 from snaketalk.settings import Settings
 
 
@@ -12,6 +15,7 @@ class MessageHandler(object):
         self,
         driver: Driver,
         settings: Settings,
+        plugins: Sequence[Plugin],
         ignore_own_messages=True,
         filter_actions=[
             "posted",
@@ -25,8 +29,23 @@ class MessageHandler(object):
         self.settings = settings
         self.filter_actions = filter_actions
         self.ignore_own_messages = ignore_own_messages
+        self.plugins = plugins
 
         self._name_matcher = re.compile(rf"^@{self.driver.username}\:?\s?")
+
+        # Collect the listeners from all plugins
+        self.listeners = defaultdict(list)
+        for plugin in self.plugins:
+            for matcher, functions in plugin.listeners.items():
+                self.listeners[matcher].extend(functions)
+
+        print("Registered listeners:")
+        print(
+            {
+                pattern.pattern: list([function.name for function in functions])
+                for (pattern, functions) in self.listeners.items()
+            }
+        )
 
     def start(self):
         # This is blocking, will loop forever
@@ -41,17 +60,16 @@ class MessageHandler(object):
             else False
         ) or (self.ignore_own_messages and message.user_id == self.driver.user_id)
 
-    @asyncio.coroutine
-    def handle_event(self, data):
+    async def handle_event(self, data):
         post = json.loads(data)
         event_action = post.get("event")
         if event_action not in self.filter_actions:
             return
 
         if event_action == "posted":
-            self._handle_post(post)
+            await self._handle_post(post)
 
-    def _handle_post(self, post):
+    async def _handle_post(self, post):
         # For some reason these are JSON strings, so need to parse them first
         for item in ["post", "mentions"]:
             if post.get("data", {}).get(item):
@@ -68,8 +86,17 @@ class MessageHandler(object):
         if self._should_ignore(message):
             return
 
-        if self.driver.user_id in message.mentions or message.is_direct_message:
-            # TODO: handle directed messages
-            pass
-
-        # TODO: handle non-mentions
+        # Find all the listeners that match this message, and have their plugins handle
+        # the rest.
+        tasks = []
+        for matcher, functions in self.listeners.items():
+            if matcher.match(message.text):
+                for function in functions:
+                    # Create an asyncio task to handle this callback
+                    tasks.append(
+                        asyncio.create_task(
+                            function.plugin.call_function(function, message)
+                        )
+                    )
+        # Execute the callbacks in parallel
+        asyncio.gather(*tasks)
