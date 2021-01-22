@@ -44,7 +44,6 @@ class ThreadPool(object):
             function, arguments = self._queue.get()
             # Notify the pool that we started working
             self._busy_workers.put(1)
-            # TODO: how does this work with keyword args?
             function(*arguments)
             # Notify the pool that we finished working
             self._queue.task_done()

@@ -43,7 +43,7 @@ class Function:
 
         self.plugin = None
 
-    def __call__(self, message: Message):
+    def __call__(self, message: Message, *args):
         # Check if this message meets our requirements
         if self.direct_only and not message.is_direct_message:
             # We need to return this so that if this Function was called with `await`,
@@ -55,7 +55,7 @@ class Function:
         ):
             return _completed_future()
 
-        return self.function(self.plugin, message)
+        return self.function(self.plugin, message, *args)
 
 
 class Plugin(ABC):
@@ -99,10 +99,12 @@ class Plugin(ABC):
         """
         return
 
-    async def call_function(self, function: Function, message: Message):
+    async def call_function(
+        self, function: Function, message: Message, groups: Sequence[str]
+    ):
         if function.is_coroutine:
-            await function(message)
+            await function(message, *groups)
         else:
             # By default, we use the global threadpool of the driver, but we could use
             # a plugin-specific thread or process pool if we wanted.
-            self.driver.threadpool.add_task(function, (message,))
+            self.driver.threadpool.add_task(function, (message, *groups))

@@ -90,12 +90,16 @@ class MessageHandler(object):
         # the rest.
         tasks = []
         for matcher, functions in self.listeners.items():
-            if matcher.match(message.text):
+            match = matcher.match(message.text)
+            if match:
+                groups = list([group for group in match.groups() if group != ""])
                 for function in functions:
                     # Create an asyncio task to handle this callback
                     tasks.append(
                         asyncio.create_task(
-                            function.plugin.call_function(function, message)
+                            function.plugin.call_function(
+                                function, message, groups=groups
+                            )
                         )
                     )
         # Execute the callbacks in parallel
