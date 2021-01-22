@@ -18,12 +18,16 @@ class Message(object):
         return self.body["data"]["post"]["user_id"]
 
     @cached_property
-    def team_id(self):
-        return self.body["data"].get("team_id", "").strip()
-
-    @cached_property
     def text(self):
         return self.body["data"]["post"]["message"].strip()
+
+    @cached_property
+    def channel_id(self):
+        return self.body["data"]["post"]["channel_id"]
+
+    @cached_property
+    def channel_name(self):
+        return self.body["data"]["channel_name"]
 
     @cached_property
     def is_direct_message(self):
@@ -34,13 +38,21 @@ class Message(object):
         return self.body["data"].get("mentions", [])
 
     @cached_property
+    def parent_id(self):
+        return self.body["data"]["post"]["parent_id"]
+
+    @cached_property
+    def reply_id(self):
+        return self.root_id or self.id
+
+    @cached_property
+    def root_id(self):
+        return self.body["data"]["post"]["root_id"]
+
+    @cached_property
     def sender_name(self):
         return self.body["data"].get("sender_name", "").strip().strip("@")
 
     @cached_property
-    def channel_id(self):
-        return self.body["data"]["post"]["channel_id"]
-
-    @cached_property
-    def channel_name(self):
-        return self.body["data"]["channel_name"]
+    def team_id(self):
+        return self.body["data"].get("team_id", "").strip()

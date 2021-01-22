@@ -80,11 +80,11 @@ class MessageHandler(object):
             "", post["data"]["post"]["message"]
         )
 
-        print(json.dumps(post, indent=4))
-
         message = Message(post)
         if self._should_ignore(message):
             return
+
+        print(json.dumps(post, indent=4))
 
         # Find all the listeners that match this message, and have their plugins handle
         # the rest.
