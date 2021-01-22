@@ -43,10 +43,13 @@ class MessageHandler(object):
 
         print("Registered listeners:")
         print(
-            {
-                pattern.pattern: list([function.name for function in functions])
-                for (pattern, functions) in self.listeners.items()
-            }
+            json.dumps(
+                {
+                    pattern.pattern: list([function.name for function in functions])
+                    for (pattern, functions) in self.listeners.items()
+                },
+                indent=4,
+            )
         )
 
     def start(self):

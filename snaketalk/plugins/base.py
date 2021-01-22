@@ -51,6 +51,8 @@ class Function:
         needs_mention: bool,
         allowed_users: Optional[Sequence] = None,
     ):
+        while isinstance(function, Function):
+            function = function.function
         self.function = function
         self.is_coroutine = asyncio.iscoroutinefunction(function)
         self.name = function.__qualname__
@@ -94,10 +96,9 @@ class Plugin(ABC):
     way, you can implement multithreading or multiprocessing as desired.
     """
 
-    listeners: Dict[re.Pattern, Sequence[Function]] = defaultdict(list)
-
     def __init__(self):
         self.driver = None
+        self.listeners: Dict[re.Pattern, Sequence[Function]] = defaultdict(list)
 
     def initialize(self, driver: Driver):
         self.driver = driver
