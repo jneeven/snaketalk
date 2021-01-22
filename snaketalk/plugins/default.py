@@ -9,6 +9,8 @@ from snaketalk.plugins.base import Plugin, listen_to
 
 
 class DefaultPlugin(Plugin):
+    """Default plugin with examples of bot functionality and usage."""
+
     @listen_to("^admin$", direct_only=True, allowed_users=["admin", "root"])
     async def users_access(self, message: Message):
         self.driver.reply_to(message, "Access allowed!")

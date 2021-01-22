@@ -7,6 +7,12 @@ class Message(object):
         self,
         body: Dict,
     ):
+        """Wrapper around the body of a mattermost post. Contains cached properties for
+        convenient variable access.
+
+        Arguments:
+        - body: dictionary, body of the network response that contains this post.
+        """
         self.body = body
 
     @cached_property

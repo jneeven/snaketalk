@@ -9,6 +9,12 @@ from snaketalk.settings import Settings
 
 
 class Bot:
+    """Base chatbot class.
+
+    Can be either subclassed for custom functionality, or used as-is with custom plugins
+    and settings. To start the bot, simply call bot.run().
+    """
+
     instance = None
 
     def __init__(self, settings=Settings(), plugins=[DefaultPlugin()]):

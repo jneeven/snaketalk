@@ -10,6 +10,12 @@ from snaketalk.message import Message
 
 class ThreadPool(object):
     def __init__(self, num_workers: int):
+        """Threadpool class to easily specify a number of worker threads and assign work
+        to any of them.
+
+        Arguments:
+        - num_workers: int, how many threads to run simultaneously.
+        """
         self.num_workers = num_workers
         self.alive = True
         self._queue = queue.Queue()
@@ -59,6 +65,12 @@ class Driver(mattermostdriver.Driver):
     username: str = ""
 
     def __init__(self, *args, num_threads=10, **kwargs):
+        """Wrapper around the mattermostdriver Driver with some convenience functions
+        and attributes.
+
+        Arguments:
+        - num_threads: int, number of threads to use for the default worker threadpool.
+        """
         super().__init__(*args, **kwargs)
         self.threadpool = ThreadPool(num_workers=num_threads)
 

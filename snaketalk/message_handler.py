@@ -25,6 +25,8 @@ class MessageHandler(object):
             "user_removed",
         ],
     ):
+        """The MessageHandler class takes care of the connection to mattermost and
+        calling the appropriate response function to each event."""
         self.driver = driver
         self.settings = settings
         self.filter_actions = filter_actions
