@@ -45,5 +45,9 @@ class Bot:
         try:
             self.message_handler.start()
         except KeyboardInterrupt as e:
+            # Shutdown the running plugins
+            for plugin in self.plugins:
+                plugin.on_stop()
+            # Stop the threadpool
             self.driver.threadpool.stop()
             raise e
