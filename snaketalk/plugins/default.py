@@ -47,7 +47,7 @@ class DefaultPlugin(Plugin):
                 message, "I do not have permission to create ephemeral posts!"
             )
 
-    @listen_to("^hello_react$ ", re.IGNORECASE, needs_mention=True)
+    @listen_to("^hello_react$", re.IGNORECASE, needs_mention=True)
     async def hello_react(self, message: Message):
         self.driver.react_to(message, "+1")
 
