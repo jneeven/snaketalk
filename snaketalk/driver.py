@@ -1,6 +1,7 @@
 import queue
 import threading
-from typing import Dict, Optional, Sequence
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence, Union
 
 import mattermostdriver
 
@@ -70,11 +71,20 @@ class Driver(mattermostdriver.Driver):
         self,
         channel_id: str,
         message: str,
-        file_ids: Sequence[str] = [],
+        file_paths: Sequence[str] = [],
         root_id: str = "",
         props: Dict = {},
         ephemeral_user_id: Optional[str] = None,
     ):
+        """Create a post in the specified channel with the specified text.
+
+        Supports sending ephemeral messages if bot permissions allow it. If any file
+        paths are specified, those files will be uploaded to mattermost first and then
+        attached.
+        """
+        file_ids = (
+            self.upload_files(file_paths, channel_id) if len(file_paths) > 0 else []
+        )
         if ephemeral_user_id:
             return self.posts.create_ephemeral_post(
                 {
@@ -100,9 +110,11 @@ class Driver(mattermostdriver.Driver):
         )
 
     def get_user_info(self, user_id: str):
+        """Returns a dictionary of user info."""
         return self.users.get_user(user_id)
 
     def react_to(self, message: Message, emoji_name: str):
+        """Adds an emoji reaction to the given message."""
         return self.reactions.create_reaction(
             {
                 "user_id": self.user_id,
@@ -115,16 +127,21 @@ class Driver(mattermostdriver.Driver):
         self,
         message: Message,
         response: str,
-        file_ids: Sequence[str] = [],
+        file_paths: Sequence[str] = [],
         props: Dict = {},
         ephemeral: bool = False,
     ):
+        """Reply to the given message.
+
+        Supports sending ephemeral messages if the bot permissions allow it. If the
+        message is part of a thread, the reply will be added to that thread.
+        """
         if ephemeral:
             return self.create_post(
                 channel_id=message.channel_id,
                 message=response,
                 root_id=message.reply_id,
-                file_ids=file_ids,
+                file_paths=file_paths,
                 props=props,
                 ephemeral_user_id=message.user_id,
             )
@@ -133,6 +150,19 @@ class Driver(mattermostdriver.Driver):
             channel_id=message.channel_id,
             message=response,
             root_id=message.reply_id,
-            file_ids=file_ids,
+            file_paths=file_paths,
             props=props,
         )
+
+    def upload_files(
+        self, file_paths: Sequence[Union[str, Path]], channel_id: str
+    ) -> List[str]:
+        """Given a list of file paths and the channel id, uploads the corresponding
+        files and returns a list their internal file IDs."""
+        file_dict = {}
+        for path in file_paths:
+            path = Path(path)
+            file_dict[path.name] = Path(path).read_bytes()
+
+        result = self.files.upload_file(channel_id, file_dict)
+        return list(info["id"] for info in result["file_infos"])

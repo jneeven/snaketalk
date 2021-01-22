@@ -1,5 +1,6 @@
 import asyncio
 import re
+from pathlib import Path
 
 import mattermostdriver
 
@@ -47,6 +48,12 @@ class DefaultPlugin(Plugin):
     @listen_to("^hello_react$ ", re.IGNORECASE, needs_mention=True)
     async def hello_react(self, message: Message):
         self.driver.react_to(message, "+1")
+
+    @listen_to("^hello_file$", re.IGNORECASE, needs_mention=True)
+    async def hello_file(self, message: Message):
+        file = Path("/tmp/hello.txt")
+        file.write_text("Hello from this file!")
+        self.driver.reply_to(message, "Here you go", file_paths=[file])
 
     # TODO: add webhook call option
 
