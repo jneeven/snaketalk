@@ -27,8 +27,11 @@ class ThreadPool(object):
     def stop(self):
         """Signals all threads that they should stop and waits for them to finish."""
         self.alive = False
-        for thread in self._threads:
+        # Signal every thread that it's time to stop
+        for _ in range(self.num_workers):
             self._queue.put((self._stop_thread, tuple()))
+        # Wait for each of them to finish
+        for thread in self._threads:
             thread.join()
 
     def _stop_thread(self):

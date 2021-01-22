@@ -1,4 +1,4 @@
-import inspect
+import asyncio
 import re
 from abc import ABC
 from collections import defaultdict
@@ -20,6 +20,12 @@ def listen_to(regexp: str, direct_only=False, needs_mention=False):
     return wrapped_func
 
 
+def _completed_future():
+    future = asyncio.Future()
+    future.set_result(True)
+    return future
+
+
 class Function:
     """Wrapper around a Plugin class method that should respond to certain Mattermost
     events."""
@@ -28,7 +34,7 @@ class Function:
         self, function: Callable, regexp: str, direct_only: bool, needs_mention: bool
     ):
         self.function = function
-        self.is_coroutine = inspect.iscoroutinefunction(function)
+        self.is_coroutine = asyncio.iscoroutinefunction(function)
         self.name = function.__qualname__
 
         self.matcher = re.compile(regexp)
@@ -37,8 +43,19 @@ class Function:
 
         self.plugin = None
 
-    def __call__(self, *args, **kwargs):
-        return self.function(*args, **kwargs)
+    def __call__(self, message: Message):
+        # Check if this message meets our requirements
+        if self.direct_only and not message.is_direct_message:
+            # We need to return this so that if this Function was called with `await`,
+            # asyncio doesn't crash.
+            return _completed_future()
+
+        if self.needs_mention and not (
+            message.is_direct_message or self.plugin.driver.user_id in message.mentions
+        ):
+            return _completed_future()
+
+        return self.function(self.plugin, message)
 
 
 class Plugin(ABC):
@@ -84,8 +101,8 @@ class Plugin(ABC):
 
     async def call_function(self, function: Function, message: Message):
         if function.is_coroutine:
-            await function(self, message)
+            await function(message)
         else:
             # By default, we use the global threadpool of the driver, but we could use
             # a plugin-specific thread or process pool if we wanted.
-            self.driver.threadpool.add_task(function, (self, message))
+            self.driver.threadpool.add_task(function, (message,))
