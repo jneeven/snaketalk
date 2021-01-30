@@ -73,8 +73,6 @@ class MessageHandler(object):
         post["data"]["post"]["message"] = self._name_matcher.sub(
             "", post["data"]["post"]["message"]
         )
-        print(post["data"])
-
         message = Message(post)
         if self._should_ignore(message):
             return
