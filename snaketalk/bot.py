@@ -29,9 +29,10 @@ class Bot:
         self.settings = settings
         self.driver = Driver(
             {
-                "url": settings.BOT_URL,
-                "port": 443,
+                "url": settings.MATTERMOST_URL,
+                "port": settings.MATTERMOST_PORT,
                 "token": settings.BOT_TOKEN,
+                "scheme": settings.SCHEME,
                 "verify": settings.SSL_VERIFY,
             }
         )

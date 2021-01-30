@@ -1,0 +1,11 @@
+version: "3.7"
+
+services:
+  app:
+    container_name: "mattermost-bot-test"
+    image: jneeven/mattermost-bot-test
+    command: ./mm/docker-entry.sh
+    ports:
+      - "8065:8065"
+    extra_hosts:
+      - "dockerhost:127.0.0.1"
