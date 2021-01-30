@@ -17,22 +17,24 @@ class ThreadPool(object):
         - num_workers: int, how many threads to run simultaneously.
         """
         self.num_workers = num_workers
-        self.alive = True
+        self.alive = False
         self._queue = queue.Queue()
         self._busy_workers = queue.Queue()
-
-        # Spawn num_workers threads that will wait for work to be added to the queue
         self._threads = []
-        for _ in range(self.num_workers):
-            worker = threading.Thread(target=self.handle_work)
-            self._threads.append(worker)
-            worker.start()
 
     def add_task(self, *args):
         self._queue.put(args)
 
     def get_busy_workers(self):
         return self._busy_workers.qsize()
+
+    def start(self):
+        self.alive = True
+        # Spawn num_workers threads that will wait for work to be added to the queue
+        for _ in range(self.num_workers):
+            worker = threading.Thread(target=self.handle_work)
+            self._threads.append(worker)
+            worker.start()
 
     def stop(self):
         """Signals all threads that they should stop and waits for them to finish."""
@@ -41,8 +43,10 @@ class ThreadPool(object):
         for _ in range(self.num_workers):
             self._queue.put((self._stop_thread, tuple()))
         # Wait for each of them to finish
+        print("Stopping threadpool, waiting for threads...")
         for thread in self._threads:
             thread.join()
+        print("Threadpool stopped.")
 
     def _stop_thread(self):
         """Used to stop individual threads."""

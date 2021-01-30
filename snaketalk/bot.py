@@ -33,7 +33,6 @@ class Bot:
                 "port": 443,
                 "token": settings.BOT_TOKEN,
                 "verify": settings.SSL_VERIFY,
-                "timeout": 0.5,
             }
         )
         self.driver.login()
@@ -49,11 +48,15 @@ class Bot:
 
     def run(self):
         try:
+            self.driver.threadpool.start()
             self.message_handler.start()
         except KeyboardInterrupt as e:
-            # Shutdown the running plugins
-            for plugin in self.plugins:
-                plugin.on_stop()
-            # Stop the threadpool
-            self.driver.threadpool.stop()
+            self.stop()
             raise e
+
+    def stop(self):
+        # Shutdown the running plugins
+        for plugin in self.plugins:
+            plugin.on_stop()
+        # Stop the threadpool
+        self.driver.threadpool.stop()
