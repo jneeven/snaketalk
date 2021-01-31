@@ -3,6 +3,7 @@ from multiprocessing import Process
 from pathlib import Path
 
 import pytest
+
 from snaketalk import Bot, Message, Plugin, Settings, listen_to
 
 

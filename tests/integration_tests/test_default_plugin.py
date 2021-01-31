@@ -1,4 +1,5 @@
 import pytest
+
 from snaketalk import Bot, Settings
 
 from .utils import start_bot  # noqa, we only import this so that the bot is started
