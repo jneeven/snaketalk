@@ -11,7 +11,7 @@ OFF_TOPIC_ID = "8p516nuo8tfpdnhf56geskp7mc"  # Channel id
 def tester():
     return Bot(
         settings=Settings(
-            MATTERMOST_URL="http://localhost",
+            MATTERMOST_URL="http://127.0.0.1",
             BOT_TOKEN="usi1ir74x3yq7qodtzzpc6kudw",
             MATTERMOST_PORT=8065,
             SSL_VERIFY=False,
