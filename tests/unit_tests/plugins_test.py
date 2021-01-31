@@ -1,10 +1,3 @@
-from unittest import mock
-
-import pytest
-
-from snaketalk import Function, Plugin, listen_to
-
-
 class TestFunction:
     def test_listen_to(self):
         # TODO: create a Function by using the listen_to decorator, and verify that

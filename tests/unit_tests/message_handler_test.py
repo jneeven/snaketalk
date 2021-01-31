@@ -1,9 +1,6 @@
-from unittest import mock
-
 import pytest
 
 from snaketalk.message import Message
-from snaketalk.message_handler import MessageHandler
 
 
 @pytest.fixture(scope="function")

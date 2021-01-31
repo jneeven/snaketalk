@@ -131,7 +131,7 @@ class Plugin(ABC):
         self, function: Function, message: Message, groups: Sequence[str]
     ):
         if function.is_coroutine:
-            await function(message, *groups)
+            await function(message, *groups)  # type:ignore
         else:
             # By default, we use the global threadpool of the driver, but we could use
             # a plugin-specific thread or process pool if we wanted.

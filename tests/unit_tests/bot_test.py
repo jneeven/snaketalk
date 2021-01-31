@@ -15,7 +15,7 @@ def bot():
 class TestBot:
     @mock.patch("snaketalk.driver.Driver.login")
     def test_init(self, login):
-        bot = Bot()
+        Bot()
         login.assert_called_once()
 
         # TODO: pass a settings object and verify that the driver was initialized

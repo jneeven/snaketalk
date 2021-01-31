@@ -1,6 +1,9 @@
 from setuptools import find_packages, setup
 
-install_requires = open("requirements.txt").read().splitlines()
+
+def requires(filename: str):
+    return open(filename).read().splitlines()
+
 
 setup(
     name="snaketalk",
@@ -10,11 +13,12 @@ setup(
     license="MIT",
     description="A simple python bot for Mattermost",
     keywords="chat bot mattermost python",
-    # long_description=open("README.md").read(),
-    # long_description_content_type="text/markdown",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     platforms=["Linux"],
     packages=find_packages(),
-    install_requires=install_requires,
+    install_requires=requires("requirements.txt"),
+    extras_require={"dev": requires("dev-requirements.txt")},
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: MIT License",
