@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Tests
 
 on:
   push:
@@ -30,6 +30,9 @@ jobs:
         run: pip check
       - name: Run unit tests
         run: pytest -vv tests/unit_tests -n auto
+  integration_test:
+    runs-on: ubuntu-latest
+    steps:
       - name: Launch test server
         run: cd tests/integration_tests && docker-compose up -d
       - name: Run integration tests
