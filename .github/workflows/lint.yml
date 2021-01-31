@@ -32,7 +32,7 @@ jobs:
       - name: Black code style
         run: black . --check --target-version py38 --exclude '\.mypy_cache/|\.venv/|env/|(.*/)*snapshots/|.pytype/'
       - name: Docstring formatting
-        run: docformatter -r . --wrap-summaries 88 --wrap-descriptions 88 && docformatter -c -r . --wrap-summaries 88 --wrap-descriptions 88
+        run: docformatter -c -r . --wrap-summaries 88 --wrap-descriptions 88
       - name: Check import order with isort
         run: isort . --check --diff
       - name: PyType type-check
