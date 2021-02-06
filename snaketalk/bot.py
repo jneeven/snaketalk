@@ -48,14 +48,18 @@ class Bot:
         return plugins
 
     def run(self):
+        logging.info(f"Starting bot {self.__class__.__name__}.")
         try:
             self.driver.threadpool.start()
+            for plugin in self.plugins:
+                plugin.on_start()
             self.message_handler.start()
         except KeyboardInterrupt as e:
             self.stop()
             raise e
 
     def stop(self):
+        logging.info("Stopping bot.")
         # Shutdown the running plugins
         for plugin in self.plugins:
             plugin.on_stop()
