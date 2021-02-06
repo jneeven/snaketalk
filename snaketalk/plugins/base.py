@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from abc import ABC
 from collections import defaultdict
@@ -110,22 +111,19 @@ class Plugin(ABC):
                 attribute.plugin = self
                 self.listeners[attribute.matcher].append(attribute)
 
-        self.on_start()
-
     def on_start(self):
         """Will be called after initialization.
 
         Can be overridden on the subclass if desired.
         """
-        # TODO: make this a debug log
-        print(f"{self.__class__.__name__}.on_start() called!")
+        logging.debug(f"Plugin {self.__class__.__name__} started!")
 
     def on_stop(self):
         """Will be called when the bot is shut down manually.
 
         Can be overridden on the subclass if desired.
         """
-        return
+        logging.debug(f"Plugin {self.__class__.__name__} stopped!")
 
     async def call_function(
         self, function: Function, message: Message, groups: Sequence[str]
