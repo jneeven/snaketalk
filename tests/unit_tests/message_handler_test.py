@@ -114,18 +114,29 @@ class TestMessageHandler:
 
         handle_post.assert_called_once_with(message.body)
 
-    @mock.patch("snaketalk.DefaultPlugin.call_function")
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
-    def test_handle_post(self, call_function, message):
-        handler = MessageHandler(Driver(), Settings(), plugins=[DefaultPlugin()])
-        new_body = message.body.copy()
+    def test_handle_post(self, message):
+        # Create an initialized plugin so its listeners are registered
+        plugin = DefaultPlugin()
+        driver = Driver()
+        plugin.initialize(driver)
+        # Construct a handler with it
+        handler = MessageHandler(driver, Settings(), plugins=[plugin])
 
+        # Mock the call_function of the plugin so we can make some asserts
+        async def mock_call_function(function, message, groups):
+            # This is the regexp that we're trying to trigger
+            assert function.matcher.pattern == "sleep ([0-9]+)"
+            assert message.text == "sleep 5"  # username should be stripped off
+            assert groups == ["5"]  # arguments should be matched and passed explicitly
+
+        plugin.call_function = mock.Mock(wraps=mock_call_function)
+
+        # Transform the default message into a raw post event so we can pass it
+        new_body = message.body.copy()
         new_body["data"]["post"] = json.dumps(new_body["data"]["post"])
         new_body["data"]["mentions"] = json.dumps(new_body["data"]["mentions"])
         asyncio.run(handler._handle_post(new_body))
 
-        print(call_function)
-
-        # TODO: test that any registered listeners are called with the appropriate
-        # arguments, and any bot mentions at the start of the message are stripped off.
-        asyncio.run(call_function.assert_called_once_with(message, ["5"]))
+        # Assert the function was called, so we know the asserts succeeded.
+        plugin.call_function.assert_called_once()

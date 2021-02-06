@@ -25,7 +25,7 @@ class MessageHandler(object):
         self.ignore_own_messages = ignore_own_messages
         self.plugins = plugins
 
-        self._name_matcher = re.compile(rf"^@{self.driver.username}\:?\s?")
+        self._name_matcher = re.compile(rf"^@?{self.driver.username}\:?\s?")
 
         # Collect the listeners from all plugins
         self.listeners = defaultdict(list)
@@ -77,14 +77,13 @@ class MessageHandler(object):
         if self._should_ignore(message):
             return
 
-        print(json.dumps(post, indent=4))
-
         # Find all the listeners that match this message, and have their plugins handle
         # the rest.
         tasks = []
         for matcher, functions in self.listeners.items():
             match = matcher.match(message.text)
             if match:
+                print(f"Matched with {matcher.pattern}")
                 groups = list([group for group in match.groups() if group != ""])
                 for function in functions:
                     # Create an asyncio task to handle this callback
