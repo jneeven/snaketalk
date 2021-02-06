@@ -55,7 +55,7 @@ class MessageHandler(object):
             if message.sender_name.lower()
             in (name.lower() for name in self.settings.IGNORE_USERS)
             else False
-        ) or (self.ignore_own_messages and message.user_id == self.driver.user_id)
+        ) or (self.ignore_own_messages and message.sender_name == self.driver.username)
 
     async def handle_event(self, data):
         post = json.loads(data)
