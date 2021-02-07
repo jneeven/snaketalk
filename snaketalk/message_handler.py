@@ -83,7 +83,6 @@ class MessageHandler(object):
         for matcher, functions in self.listeners.items():
             match = matcher.match(message.text)
             if match:
-                print(f"Matched with {matcher.pattern}")
                 groups = list([group for group in match.groups() if group != ""])
                 for function in functions:
                     # Create an asyncio task to handle this callback
