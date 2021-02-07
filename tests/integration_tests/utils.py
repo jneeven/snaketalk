@@ -4,7 +4,7 @@ from multiprocessing import Process
 import pytest
 from filelock import FileLock
 
-from snaketalk import Bot, Message, Plugin, Settings, listen_to
+from snaketalk import Bot, ExamplePlugin, Message, Plugin, Settings, listen_to
 
 
 class TestPlugin(Plugin):
@@ -29,7 +29,7 @@ def start_bot(request):
                 MATTERMOST_PORT=8065,
                 SSL_VERIFY=False,
             ),
-            plugins=[TestPlugin()],
+            plugins=[TestPlugin(), ExamplePlugin()],
         )
 
         def run_bot():
