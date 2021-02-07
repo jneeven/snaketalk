@@ -25,7 +25,7 @@ class MessageHandler(object):
         self.ignore_own_messages = ignore_own_messages
         self.plugins = plugins
 
-        self._name_matcher = re.compile(rf"^@{self.driver.username}\:?\s?")
+        self._name_matcher = re.compile(rf"^@?{self.driver.username}\:?\s?")
 
         # Collect the listeners from all plugins
         self.listeners = defaultdict(list)
@@ -55,7 +55,7 @@ class MessageHandler(object):
             if message.sender_name.lower()
             in (name.lower() for name in self.settings.IGNORE_USERS)
             else False
-        ) or (self.ignore_own_messages and message.user_id == self.driver.user_id)
+        ) or (self.ignore_own_messages and message.sender_name == self.driver.username)
 
     async def handle_event(self, data):
         post = json.loads(data)
@@ -76,8 +76,6 @@ class MessageHandler(object):
         message = Message(post)
         if self._should_ignore(message):
             return
-
-        print(json.dumps(post, indent=4))
 
         # Find all the listeners that match this message, and have their plugins handle
         # the rest.
