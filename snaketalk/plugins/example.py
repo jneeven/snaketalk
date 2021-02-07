@@ -8,7 +8,7 @@ from snaketalk.message import Message
 from snaketalk.plugins.base import Plugin, listen_to
 
 
-class DefaultPlugin(Plugin):
+class ExamplePlugin(Plugin):
     """Default plugin with examples of bot functionality and usage."""
 
     @listen_to("^admin$", direct_only=True, allowed_users=["admin", "root"])
@@ -23,15 +23,6 @@ class DefaultPlugin(Plugin):
             message,
             f"Number of busy worker threads: {busy}",
         )
-
-    @listen_to("hello$", re.IGNORECASE, needs_mention=True)
-    async def hello_reply(self, message: Message):
-        self.driver.reply_to(message, "hello sender!")
-
-    @listen_to("hello_formatting$", needs_mention=True)
-    async def hello_reply_formatting(self, message: Message):
-        # Format message with italic style
-        self.driver.reply_to(message, "_hello_ sender!")
 
     @listen_to("hello_channel$", needs_mention=True)
     async def hello_channel(self, message: Message):

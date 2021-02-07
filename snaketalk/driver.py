@@ -1,5 +1,6 @@
 import queue
 import threading
+from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
@@ -124,6 +125,13 @@ class Driver(mattermostdriver.Driver):
                 "props": props,
             }
         )
+
+    def get_thread(self, post_id: str):
+        """Wrapper around driver.posts.get_thread, which for some reason returns
+        duplicate entries in the ordered list."""
+        thread_info = self.posts.get_thread(post_id)
+        thread_info["order"] = list(OrderedDict.fromkeys(thread_info["order"]))
+        return thread_info
 
     def get_user_info(self, user_id: str):
         """Returns a dictionary of user info."""

@@ -30,7 +30,7 @@ class TestFunction:
 class TestPlugin:
     def test_initialize(self):
         # TODO: test whether the listeners are registered correctly. Can either create
-        # a special testing Plugin or use DefaultPlugin.
+        # a special testing Plugin or use ExamplePlugin.
 
         # TODO: verify that on_start is called.
         pass

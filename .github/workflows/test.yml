@@ -52,4 +52,4 @@ jobs:
         run: docker ps -a
       - name: Run integration tests
         working-directory: tests/integration_tests
-        run: pytest . -vv
+        run: pytest . -vv -n auto

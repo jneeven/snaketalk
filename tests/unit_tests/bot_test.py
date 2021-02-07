@@ -3,14 +3,14 @@ from unittest import mock
 import pytest
 
 from snaketalk import Bot, Settings
-from snaketalk.plugins.default import DefaultPlugin
+from snaketalk.plugins.default import ExamplePlugin
 
 from ..integration_tests.utils import TestPlugin
 
 
 @pytest.fixture(scope="function")
 def bot():
-    bot = Bot(plugins=[DefaultPlugin()], settings=Settings(DEBUG=True))
+    bot = Bot(plugins=[ExamplePlugin()], settings=Settings(DEBUG=True))
     yield bot
     bot.stop()  # if the bot was started, stop it
 
@@ -19,7 +19,7 @@ class TestBot:
     @mock.patch("snaketalk.driver.Driver.login")
     def test_init(self, login):
         # Create some plugins and mock their initialize method so we can check calls
-        plugins = [DefaultPlugin(), TestPlugin()]
+        plugins = [ExamplePlugin(), TestPlugin()]
         for plugin in plugins:
             plugin.initialize = mock.MagicMock()
 

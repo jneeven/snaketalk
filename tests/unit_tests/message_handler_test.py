@@ -7,7 +7,7 @@ import pytest
 from snaketalk import Message, Settings
 from snaketalk.driver import Driver
 from snaketalk.message_handler import MessageHandler
-from snaketalk.plugins.default import DefaultPlugin
+from snaketalk.plugins.default import ExamplePlugin
 
 
 @pytest.fixture(scope="function")
@@ -55,7 +55,7 @@ def message():
 class TestMessageHandler:
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
     def test_init(self):
-        handler = MessageHandler(Driver(), Settings(), plugins=[DefaultPlugin()])
+        handler = MessageHandler(Driver(), Settings(), plugins=[ExamplePlugin()])
         # Test the name matcher regexp
         assert handler._name_matcher.match("@my_username are you there?")
         assert not handler._name_matcher.match("@other_username are you there?")
@@ -117,7 +117,7 @@ class TestMessageHandler:
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
     def test_handle_post(self, message):
         # Create an initialized plugin so its listeners are registered
-        plugin = DefaultPlugin()
+        plugin = ExamplePlugin()
         driver = Driver()
         plugin.initialize(driver)
         # Construct a handler with it
