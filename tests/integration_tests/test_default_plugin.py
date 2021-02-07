@@ -7,7 +7,7 @@ from .utils import start_bot  # noqa, we only import this so that the bot is sta
 OFF_TOPIC_ID = "8p516nuo8tfpdnhf56geskp7mc"  # Channel id
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def tester():
     return Bot(
         settings=Settings(
@@ -26,5 +26,7 @@ respond with an ephemeral message, etc.)."""
 
 
 def test_start(tester):
-    tester.driver.create_post(OFF_TOPIC_ID, "starting integration tests!")
+    post_id = tester.driver.create_post(OFF_TOPIC_ID, "starting integration tests!")[
+        "id"
+    ]
     # TODO: check if we got a response (we should, see utils.py)
