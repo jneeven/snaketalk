@@ -2,24 +2,26 @@ import asyncio
 import json
 from unittest import mock
 
-import pytest
-
 from snaketalk import Message, Settings
 from snaketalk.driver import Driver
 from snaketalk.message_handler import MessageHandler
 from snaketalk.plugins.default import DefaultPlugin
 
 
-@pytest.fixture(scope="function")
-def message():
+def create_message(
+    text="hello",
+    mentions=["qmw86q7qsjriura9jos75i4why"],
+    channel_type="O",
+    sender_name="betty",
+):
     return Message(
         {
             "event": "posted",
             "data": {
                 "channel_display_name": "Off-Topic",
                 "channel_name": "off-topic",
-                "channel_type": "O",
-                "mentions": ["qmw86q7qsjriura9jos75i4why"],
+                "channel_type": channel_type,
+                "mentions": mentions,
                 "post": {
                     "id": "wqpuawcw3iym3pq63s5xi1776r",
                     "create_at": 1533085458236,
@@ -32,13 +34,13 @@ def message():
                     "root_id": "",
                     "parent_id": "",
                     "original_id": "",
-                    "message": "my_username sleep 5",
+                    "message": text,
                     "type": "",
                     "props": {},
                     "hashtags": "",
                     "pending_post_id": "",
                 },
-                "sender_name": "betty",
+                "sender_name": sender_name,
                 "team_id": "au64gza3iint3r31e7ewbrrasw",
             },
             "broadcast": {
@@ -79,21 +81,16 @@ class TestMessageHandler:
                 )
 
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
-    def test_should_ignore(self, message):
+    def test_should_ignore(self):
         handler = MessageHandler(
             Driver(), Settings(IGNORE_USERS=["ignore_me"]), plugins=[]
         )
         # We shouldn't ignore a message from betty, since she is not listed
-        assert not handler._should_ignore(message)
-
-        message = Message(message.body)
-        message.body["data"]["sender_name"] = "ignore_me"
-        assert handler._should_ignore(message)
+        assert not handler._should_ignore(create_message(sender_name="betty"))
+        assert handler._should_ignore(create_message(sender_name="ignore_me"))
 
         # We ignore our own messages by default
-        message = Message(message.body)
-        message.body["data"]["sender_name"] = "my_username"
-        assert handler._should_ignore(message)
+        assert handler._should_ignore(create_message(sender_name="my_username"))
 
         # But shouldn't do so if this is explicitly requested
         handler = MessageHandler(
@@ -102,24 +99,23 @@ class TestMessageHandler:
             plugins=[],
             ignore_own_messages=False,
         )
-        assert not handler._should_ignore(message)
+        assert not handler._should_ignore(create_message(sender_name="my_username"))
 
     @mock.patch("snaketalk.message_handler.MessageHandler._handle_post")
-    def test_handle_event(self, handle_post, message):
+    def test_handle_event(self, handle_post):
         handler = MessageHandler(Driver(), Settings(), plugins=[])
         # This event should trigger _handle_post
-        asyncio.run(handler.handle_event(json.dumps(message.body)))
+        asyncio.run(handler.handle_event(json.dumps(create_message().body)))
         # This event should not
         asyncio.run(handler.handle_event(json.dumps({"event": "some_other_event"})))
 
-        handle_post.assert_called_once_with(message.body)
+        handle_post.assert_called_once_with(create_message().body)
 
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
-    def test_handle_post(self, message):
+    def test_handle_post(self):
         # Create an initialized plugin so its listeners are registered
-        plugin = DefaultPlugin()
         driver = Driver()
-        plugin.initialize(driver)
+        plugin = DefaultPlugin().initialize(driver)
         # Construct a handler with it
         handler = MessageHandler(driver, Settings(), plugins=[plugin])
 
@@ -133,7 +129,7 @@ class TestMessageHandler:
         plugin.call_function = mock.Mock(wraps=mock_call_function)
 
         # Transform the default message into a raw post event so we can pass it
-        new_body = message.body.copy()
+        new_body = create_message().body.copy()
         new_body["data"]["post"] = json.dumps(new_body["data"]["post"])
         new_body["data"]["mentions"] = json.dumps(new_body["data"]["mentions"])
         asyncio.run(handler._handle_post(new_body))
