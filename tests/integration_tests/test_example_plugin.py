@@ -3,6 +3,7 @@ import time
 import pytest
 
 from snaketalk import Bot, Settings
+from snaketalk.driver import Driver
 
 from .utils import start_bot  # noqa, we only import this so that the bot is started
 
@@ -24,30 +25,28 @@ def driver():
     ).driver
 
 
-# Verifies that the bot is running and listening to this non-targeted message
-def test_start(driver):
-    post_id = driver.create_post(OFF_TOPIC_ID, "starting integration tests!")["id"]
-    time.sleep(RESPONSE_TIMEOUT)
+def expect_reply(driver: Driver, post_id=str, wait=RESPONSE_TIMEOUT):
+    """Utility function to specify we expect some kind of reply after `wait` seconds."""
+    time.sleep(wait)
     thread_info = driver.get_thread(post_id)
     reply_id = thread_info["order"][-1]
     if reply_id == post_id:
         raise ValueError("Expected a response, but didn't get any!")
+    return thread_info["posts"][reply_id]
 
-    assert thread_info["posts"][reply_id]["message"] == "Bring it on!"
+
+# Verifies that the bot is running and listening to this non-targeted message
+def test_start(driver):
+    post_id = driver.create_post(OFF_TOPIC_ID, "starting integration tests!")["id"]
+    assert expect_reply(driver, post_id)["message"] == "Bring it on!"
 
 
 class TestExamplePlugin:
     def test_info(self, driver):
         post_id = driver.create_post(OFF_TOPIC_ID, "!info")["id"]
         user_info = driver.get_user_info(driver.user_id)
-        time.sleep(RESPONSE_TIMEOUT)
 
-        thread_info = driver.get_thread(post_id)
-        reply_id = thread_info["order"][-1]
-        if reply_id == post_id:
-            raise ValueError("Expected a response, but didn't get any!")
-
-        reply = thread_info["posts"][reply_id]["message"]
+        reply = expect_reply(driver, post_id)["message"]
         reply = {
             line.split(": ")[0].lower(): line.split(": ")[1]
             for line in reply.split("\n")
@@ -62,29 +61,13 @@ class TestExamplePlugin:
 
     def test_ping(self, driver):
         post_id = driver.create_post(OFF_TOPIC_ID, "@main_bot ping")["id"]
-        time.sleep(RESPONSE_TIMEOUT)
-        thread_info = driver.get_thread(post_id)
-        reply_id = thread_info["order"][-1]
-        if reply_id == post_id:
-            raise ValueError("Expected a response, but didn't get any!")
-
-        assert thread_info["posts"][reply_id]["message"] == "pong"
+        assert expect_reply(driver, post_id)["message"] == "pong"
 
     def test_sleep(self, driver):
         post_info = driver.create_post(OFF_TOPIC_ID, "@main_bot sleep 5")
         post_id = post_info["id"]
-        time.sleep(max(10, RESPONSE_TIMEOUT))  # wait at least 10 seconds
-
-        thread_info = driver.get_thread(post_id)
-        import json
-
-        print(json.dumps(thread_info, indent=4))
-        reply_id = thread_info["order"][-1]
-        if reply_id == post_id:
-            raise ValueError("Expected a response, but didn't get any!")
-
-        assert thread_info["posts"][reply_id]["message"] == "Done!"
-        # At least 5 seconds must have passed
-        assert (
-            thread_info["posts"][reply_id]["create_at"] - post_info["create_at"] >= 5000
-        )
+        # wait at least 10 seconds
+        reply = expect_reply(driver, post_id, wait=max(10, RESPONSE_TIMEOUT))
+        assert reply["message"] == "Done!"
+        # At least 5 seconds must have passed between our message and the response
+        assert reply["create_at"] - post_info["create_at"] >= 5000
