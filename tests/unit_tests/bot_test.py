@@ -2,8 +2,7 @@ from unittest import mock
 
 import pytest
 
-from snaketalk import Bot, Settings
-from snaketalk.plugins.default import ExamplePlugin
+from snaketalk import Bot, ExamplePlugin, Settings
 
 from ..integration_tests.utils import TestPlugin
 

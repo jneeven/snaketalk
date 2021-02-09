@@ -2,7 +2,7 @@ import asyncio
 import re
 from unittest import mock
 
-from snaketalk import DefaultPlugin, Function, Plugin, listen_to
+from snaketalk import ExamplePlugin, Function, Plugin, listen_to
 from snaketalk.driver import Driver
 
 from .message_handler_test import create_message
@@ -53,7 +53,7 @@ class TestFunction:
         wrapped = mock.MagicMock()
         wrapped.__qualname__ = "wrapped"
         f = listen_to("", needs_mention=True)(wrapped)
-        f.plugin = DefaultPlugin().initialize(Driver())
+        f.plugin = ExamplePlugin().initialize(Driver())
 
         # The default message mentions the specified user ID, so should be called
         f(create_message(mentions=["qmw86q7qsjriura9jos75i4why"]))
@@ -93,7 +93,7 @@ class TestFunction:
         driver.reply_to = mock.Mock(wraps=fake_reply)
 
         f = listen_to("", allowed_users=["Betty"])(wrapped)
-        f.plugin = DefaultPlugin().initialize(driver)
+        f.plugin = ExamplePlugin().initialize(driver)
 
         # This is fine, the names are not caps sensitive
         f(create_message(sender_name="betty"))
