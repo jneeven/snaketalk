@@ -136,8 +136,13 @@ class TestExamplePlugin:
 
     def test_sleep(self, driver):
         post = driver.create_post(OFF_TOPIC_ID, "@main_bot sleep 5")
-        # wait at least 15 seconds
-        reply = expect_reply(driver, post, wait=max(15, RESPONSE_TIMEOUT))
+        # wait at least 10 seconds
+        reply = expect_reply(driver, post, wait=max(10, RESPONSE_TIMEOUT), retries=0)
+        # If we only got this message, the bot was probably busy, so we wait longer.
+        if reply["message"] == "Okay, I will be waiting 5 seconds.":
+            reply = expect_reply(
+                driver, post, wait=max(15, RESPONSE_TIMEOUT), retries=0
+            )
         assert reply["message"] == "Done!"
         # At least 5 seconds must have passed between our message and the response
         assert reply["create_at"] - post["create_at"] >= 5000
