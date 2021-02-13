@@ -133,7 +133,6 @@ class Plugin(ABC):
         self, function: Function, message: Message, groups: Sequence[str]
     ):
         if function.is_coroutine:
-            print("awaiting coroutine!")
             await function(message, *groups)  # type:ignore
         else:
             # By default, we use the global threadpool of the driver, but we could use

@@ -51,7 +51,7 @@ class ExamplePlugin(Plugin):
     # TODO: add webhook call option
 
     @listen_to("^!info$")
-    async def info_request(self, message: Message):
+    async def info(self, message: Message):
         user_email = self.driver.get_user_info(message.user_id)["email"]
         reply = (
             f"TEAM-ID: {message.team_id}\nUSERNAME: {message.sender_name}\n"
