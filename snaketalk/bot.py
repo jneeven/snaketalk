@@ -4,7 +4,7 @@ from typing import Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.message_handler import MessageHandler
-from snaketalk.plugins import DefaultPlugin, Plugin
+from snaketalk.plugins import ExamplePlugin, Plugin
 from snaketalk.settings import Settings
 
 
@@ -15,9 +15,7 @@ class Bot:
     and settings. To start the bot, simply call bot.run().
     """
 
-    instance = None
-
-    def __init__(self, settings=Settings(), plugins=[DefaultPlugin()]):
+    def __init__(self, settings=Settings(), plugins=[ExamplePlugin()]):
         logging.basicConfig(
             **{
                 "format": "[%(asctime)s] %(message)s",

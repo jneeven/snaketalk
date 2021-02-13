@@ -2,10 +2,9 @@ import asyncio
 import json
 from unittest import mock
 
-from snaketalk import Message, Settings
+from snaketalk import ExamplePlugin, Message, Settings
 from snaketalk.driver import Driver
 from snaketalk.message_handler import MessageHandler
-from snaketalk.plugins.default import DefaultPlugin
 
 
 def create_message(
@@ -57,7 +56,7 @@ def create_message(
 class TestMessageHandler:
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
     def test_init(self):
-        handler = MessageHandler(Driver(), Settings(), plugins=[DefaultPlugin()])
+        handler = MessageHandler(Driver(), Settings(), plugins=[ExamplePlugin()])
         # Test the name matcher regexp
         assert handler._name_matcher.match("@my_username are you there?")
         assert not handler._name_matcher.match("@other_username are you there?")
@@ -115,7 +114,7 @@ class TestMessageHandler:
     def test_handle_post(self):
         # Create an initialized plugin so its listeners are registered
         driver = Driver()
-        plugin = DefaultPlugin().initialize(driver)
+        plugin = ExamplePlugin().initialize(driver)
         # Construct a handler with it
         handler = MessageHandler(driver, Settings(), plugins=[plugin])
 
@@ -129,7 +128,7 @@ class TestMessageHandler:
         plugin.call_function = mock.Mock(wraps=mock_call_function)
 
         # Transform the default message into a raw post event so we can pass it
-        new_body = create_message().body.copy()
+        new_body = create_message(text="@my_username sleep 5").body.copy()
         new_body["data"]["post"] = json.dumps(new_body["data"]["post"])
         new_body["data"]["mentions"] = json.dumps(new_body["data"]["mentions"])
         asyncio.run(handler._handle_post(new_body))

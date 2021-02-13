@@ -8,7 +8,7 @@ from snaketalk.message import Message
 from snaketalk.plugins.base import Plugin, listen_to
 
 
-class DefaultPlugin(Plugin):
+class ExamplePlugin(Plugin):
     """Default plugin with examples of bot functionality and usage."""
 
     @listen_to("^admin$", direct_only=True, allowed_users=["admin", "root"])
@@ -24,22 +24,13 @@ class DefaultPlugin(Plugin):
             f"Number of busy worker threads: {busy}",
         )
 
-    @listen_to("hello$", re.IGNORECASE, needs_mention=True)
-    async def hello_reply(self, message: Message):
-        self.driver.reply_to(message, "hello sender!")
-
-    @listen_to("hello_formatting$", needs_mention=True)
-    async def hello_reply_formatting(self, message: Message):
-        # Format message with italic style
-        self.driver.reply_to(message, "_hello_ sender!")
-
-    @listen_to("hello_channel$", needs_mention=True)
+    @listen_to("^hello_channel$", needs_mention=True)
     async def hello_channel(self, message: Message):
         self.driver.create_post(channel_id=message.channel_id, message="hello channel!")
 
     # Needs admin permissions
-    @listen_to("hello_ephemeral$", needs_mention=True)
-    async def hello_empemeral(self, message: Message):
+    @listen_to("^hello_ephemeral$", needs_mention=True)
+    async def hello_ephemeral(self, message: Message):
         try:
             self.driver.reply_to(message, "hello sender!", ephemeral=True)
         except mattermostdriver.exceptions.NotEnoughPermissions:
@@ -60,7 +51,7 @@ class DefaultPlugin(Plugin):
     # TODO: add webhook call option
 
     @listen_to("^!info$")
-    async def info_request(self, message: Message):
+    async def info(self, message: Message):
         user_email = self.driver.get_user_info(message.user_id)["email"]
         reply = (
             f"TEAM-ID: {message.team_id}\nUSERNAME: {message.sender_name}\n"
@@ -74,7 +65,7 @@ class DefaultPlugin(Plugin):
     async def ping_reply(self, message: Message):
         self.driver.reply_to(message, "pong")
 
-    @listen_to("sleep ([0-9]+)", needs_mention=True)
+    @listen_to("^sleep ([0-9]+)", needs_mention=True)
     async def sleep_reply(self, message: Message, seconds: str):
         self.driver.reply_to(message, f"Okay, I will be waiting {seconds} seconds.")
         await asyncio.sleep(int(seconds))
