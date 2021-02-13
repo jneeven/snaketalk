@@ -42,6 +42,22 @@ def test_start(driver):
 
 
 class TestExamplePlugin:
+    def test_react(self, driver):
+        post_id = driver.create_post(OFF_TOPIC_ID, "@main_bot hello_react")["id"]
+        time.sleep(RESPONSE_TIMEOUT)
+        reactions = driver.reactions.get_reactions_of_post(post_id)
+        assert len(reactions) == 1
+        assert reactions[0]["emoji_name"] == "+1"
+
+    def test_file(self, driver):
+        post_id = driver.create_post(OFF_TOPIC_ID, "@main_bot hello_file")["id"]
+        reply = expect_reply(driver, post_id)
+        assert len(reply["metadata"]["files"]) == 1
+        file = reply["metadata"]["files"][0]
+        assert file["name"] == "hello.txt"
+        file = driver.files.get_file(file["id"])
+        assert file.content.decode("utf-8") == "Hello from this file!"
+
     def test_info(self, driver):
         post_id = driver.create_post(OFF_TOPIC_ID, "!info")["id"]
         user_info = driver.get_user_info(driver.user_id)
@@ -66,8 +82,8 @@ class TestExamplePlugin:
     def test_sleep(self, driver):
         post_info = driver.create_post(OFF_TOPIC_ID, "@main_bot sleep 5")
         post_id = post_info["id"]
-        # wait at least 10 seconds
-        reply = expect_reply(driver, post_id, wait=max(10, RESPONSE_TIMEOUT))
+        # wait at least 15 seconds
+        reply = expect_reply(driver, post_id, wait=max(15, RESPONSE_TIMEOUT))
         assert reply["message"] == "Done!"
         # At least 5 seconds must have passed between our message and the response
         assert reply["create_at"] - post_info["create_at"] >= 5000
