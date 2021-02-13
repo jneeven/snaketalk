@@ -24,13 +24,13 @@ class ExamplePlugin(Plugin):
             f"Number of busy worker threads: {busy}",
         )
 
-    @listen_to("hello_channel$", needs_mention=True)
+    @listen_to("^hello_channel$", needs_mention=True)
     async def hello_channel(self, message: Message):
         self.driver.create_post(channel_id=message.channel_id, message="hello channel!")
 
     # Needs admin permissions
-    @listen_to("hello_ephemeral$", needs_mention=True)
-    async def hello_empemeral(self, message: Message):
+    @listen_to("^hello_ephemeral$", needs_mention=True)
+    async def hello_ephemeral(self, message: Message):
         try:
             self.driver.reply_to(message, "hello sender!", ephemeral=True)
         except mattermostdriver.exceptions.NotEnoughPermissions:
