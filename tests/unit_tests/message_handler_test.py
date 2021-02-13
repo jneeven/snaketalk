@@ -128,7 +128,7 @@ class TestMessageHandler:
         plugin.call_function = mock.Mock(wraps=mock_call_function)
 
         # Transform the default message into a raw post event so we can pass it
-        new_body = create_message().body.copy()
+        new_body = create_message(text="@my_username sleep 5").body.copy()
         new_body["data"]["post"] = json.dumps(new_body["data"]["post"])
         new_body["data"]["mentions"] = json.dumps(new_body["data"]["mentions"])
         asyncio.run(handler._handle_post(new_body))

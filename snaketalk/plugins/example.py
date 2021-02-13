@@ -65,7 +65,7 @@ class ExamplePlugin(Plugin):
     async def ping_reply(self, message: Message):
         self.driver.reply_to(message, "pong")
 
-    @listen_to("sleep ([0-9]+)", needs_mention=True)
+    @listen_to("^sleep ([0-9]+)", needs_mention=True)
     async def sleep_reply(self, message: Message, seconds: str):
         self.driver.reply_to(message, f"Okay, I will be waiting {seconds} seconds.")
         await asyncio.sleep(int(seconds))
