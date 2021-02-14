@@ -122,6 +122,35 @@ class TestExamplePlugin:
         file = driver.files.get_file(file["id"])
         assert file.content.decode("utf-8") == "Hello from this file!"
 
+    def test_webhook(self, driver):
+        original_post = driver.create_post(OFF_TOPIC_ID, "!hello_webhook")
+        time.sleep(RESPONSE_TIMEOUT)
+
+        message = None
+        for id, post in driver.posts.get_posts_for_channel(OFF_TOPIC_ID)[
+            "posts"
+        ].items():
+            if (
+                post["message"].lower() == "hello?"
+                and post["create_at"] > original_post["create_at"]
+            ):
+                message = post
+                break
+
+        if not message:
+            raise ValueError(
+                "Expected bot to reply 'Hello?', but found no such message!"
+            )
+
+        assert message["props"]["from_webhook"] == "true"
+        assert message["props"]["webhook_display_name"] == "TestHook"
+        assert len(message["props"]["attachments"]) == 1
+
+        attachment = message["props"]["attachments"][0]
+        assert attachment["author_name"] == "Author"
+        assert attachment["title"] == "Title"
+        assert attachment["text"] == "Attachment text here..."
+
     def test_info(self, driver):
         post = driver.create_post(OFF_TOPIC_ID, "!info")
         user_info = driver.get_user_info(driver.user_id)
