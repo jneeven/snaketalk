@@ -3,7 +3,7 @@ version: "3.7"
 services:
   app:
     container_name: "mattermost-bot-test"
-    image: jneeven/mattermost-bot-test
+    image: jneeven/mattermost-bot-test:new_tokens_14.02.2021
     command: ./mm/docker-entry.sh
     ports:
       - "8065:8065"
