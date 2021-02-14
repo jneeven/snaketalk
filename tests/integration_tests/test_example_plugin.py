@@ -1,3 +1,4 @@
+import random
 import time
 from typing import Dict
 
@@ -25,6 +26,12 @@ def driver():
         ),
         plugins=[],  # We only use this to send messages, not to reply to anything.
     ).driver
+
+
+@pytest.fixture(scope="function", autouse=True)
+def random_sleep():
+    """Wait a random number of seconds before sending any kind of message."""
+    time.sleep(random.uniform(0, RESPONSE_TIMEOUT))
 
 
 def expect_reply(driver: Driver, post: Dict, wait=RESPONSE_TIMEOUT, retries=1):
