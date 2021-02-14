@@ -8,10 +8,10 @@ from snaketalk.driver import Driver
 
 from .utils import start_bot  # noqa, we only import this so that the bot is started
 
-OFF_TOPIC_ID = "8p516nuo8tfpdnhf56geskp7mc"  # Channel id
-TEAM_ID = "5u4q3izes387mq494benjxyzya"
-MAIN_BOT_ID = "7rfim79wnignxjqxzbd6fb9ofr"
-RESPONSE_TIMEOUT = 5
+OFF_TOPIC_ID = "ahzqezf33jny9mpst758dnaahw"  # Channel id
+TEAM_ID = "h6aje7ujgpggjrtik6f3m8fjah"
+MAIN_BOT_ID = "hjawadm1ntdxzefd193x8mos7a"
+RESPONSE_TIMEOUT = 10
 
 
 @pytest.fixture(scope="session")
@@ -19,7 +19,7 @@ def driver():
     return Bot(
         settings=Settings(
             MATTERMOST_URL="http://127.0.0.1",
-            BOT_TOKEN="usi1ir74x3yq7qodtzzpc6kudw",
+            BOT_TOKEN="7arqwr6kzibc58zomct9ndfk1e",
             MATTERMOST_PORT=8065,
             SSL_VERIFY=False,
         ),

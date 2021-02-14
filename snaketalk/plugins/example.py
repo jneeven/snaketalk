@@ -51,7 +51,7 @@ class ExamplePlugin(Plugin):
     @listen_to("^!hello_webhook$", re.IGNORECASE)
     async def hello_webhook(self, message: Message):
         self.driver.webhooks.call_webhook(
-            "b8q89s81138cupepz4itfh4khr",
+            "eauegoqk4ibxigfybqrsfmt48r",
             options={
                 "username": "webhook_test",  # Requires the right webhook permissions
                 "channel": "off-topic",
