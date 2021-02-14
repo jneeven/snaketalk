@@ -1,4 +1,3 @@
-import random
 import time
 from typing import Dict
 
@@ -28,18 +27,13 @@ def driver():
     ).driver
 
 
-@pytest.fixture(scope="function", autouse=True)
-def random_sleep():
-    """Wait a random number of seconds before sending any kind of message."""
-    time.sleep(random.uniform(0, RESPONSE_TIMEOUT))
-
-
 def expect_reply(driver: Driver, post: Dict, wait=RESPONSE_TIMEOUT, retries=1):
     """Utility function to specify we expect some kind of reply after `wait` seconds."""
     reply = None
     for _ in range(retries + 1):
         time.sleep(wait)
         thread_info = driver.get_thread(post["id"])
+        print(thread_info)
         reply_id = thread_info["order"][-1]
         if reply_id != post["id"]:
             reply = thread_info["posts"][reply_id]
@@ -58,6 +52,14 @@ def test_start(driver):
 
 
 class TestExamplePlugin:
+    def test_sleep(self, driver):
+        post = driver.create_post(OFF_TOPIC_ID, "@main_bot sleep 5")
+        # wait at least 10 seconds
+        reply = expect_reply(driver, post, wait=max(10, RESPONSE_TIMEOUT), retries=0)
+        assert reply["message"] == "Done!"
+        # At least 5 seconds must have passed between our message and the response
+        assert reply["create_at"] - post["create_at"] >= 5000
+
     def test_admin(self, driver):
         # Since this is not a direct message, we expect no reply at all
         post_id = driver.create_post(OFF_TOPIC_ID, "@main_bot admin")["id"]
@@ -140,16 +142,3 @@ class TestExamplePlugin:
     def test_ping(self, driver):
         post = driver.create_post(OFF_TOPIC_ID, "@main_bot ping")
         assert expect_reply(driver, post)["message"] == "pong"
-
-    def test_sleep(self, driver):
-        post = driver.create_post(OFF_TOPIC_ID, "@main_bot sleep 5")
-        # wait at least 10 seconds
-        reply = expect_reply(driver, post, wait=max(10, RESPONSE_TIMEOUT), retries=0)
-        # If we only got this message, the bot was probably busy, so we wait longer.
-        if reply["message"] == "Okay, I will be waiting 5 seconds.":
-            reply = expect_reply(
-                driver, post, wait=max(15, RESPONSE_TIMEOUT), retries=0
-            )
-        assert reply["message"] == "Done!"
-        # At least 5 seconds must have passed between our message and the response
-        assert reply["create_at"] - post["create_at"] >= 5000

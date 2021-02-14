@@ -1,6 +1,5 @@
 import queue
 import threading
-from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
@@ -128,9 +127,16 @@ class Driver(mattermostdriver.Driver):
 
     def get_thread(self, post_id: str):
         """Wrapper around driver.posts.get_thread, which for some reason returns
-        duplicate entries in the ordered list."""
+        duplicate and wrongly ordered entries in the ordered list."""
         thread_info = self.posts.get_thread(post_id)
-        thread_info["order"] = list(OrderedDict.fromkeys(thread_info["order"]))
+
+        id_stamps = []
+        for id, post in thread_info["posts"].items():
+            id_stamps.append((id, int(post["create_at"])))
+        # Sort the posts by their timestamps
+        sorted_stamps = sorted(id_stamps, key=lambda x: x[-1])
+        # Overwrite the order with the sorted list
+        thread_info["order"] = list([id for id, stamp in sorted_stamps])
         return thread_info
 
     def get_user_info(self, user_id: str):
