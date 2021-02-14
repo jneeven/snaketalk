@@ -47,6 +47,7 @@ class TestFunction:
         new_f = Function(f, matcher=re.compile("a"))
         assert new_f.function is wrapped
         assert new_f.matcher.pattern == "a"
+        assert f in new_f.siblings
 
     @mock.patch("snaketalk.driver.Driver.user_id", "qmw86q7qsjriura9jos75i4why")
     def test_needs_mention(self):  # noqa
@@ -109,24 +110,45 @@ class TestFunction:
 # Used in the plugin tests below
 class FakePlugin(Plugin):
     @listen_to("pattern")
-    def my_function(self, message):
+    def my_function(self, message, needs_mention=True):
+        """This is the docstring of my_function."""
+        pass
+
+    @listen_to("direct_pattern", direct_only=True, allowed_users=["admin"])
+    def direct_function(self, message):
         pass
 
     @listen_to("async_pattern")
+    @listen_to("another_async_pattern", direct_only=True)
     async def my_async_function(self, message):
+        """Async function docstring."""
         pass
 
 
 class TestPlugin:
     def test_initialize(self):
         p = FakePlugin().initialize(Driver())
-        # Simply test whether the function was registered properly
-        assert p.listeners[FakePlugin.my_function.matcher] == [FakePlugin.my_function]
+        # Test whether the function was registered properly
+        assert p.listeners[re.compile("pattern")] == [
+            FakePlugin.my_function,
+        ]
+
+        # This function should be registered twice, once for each listener
+        assert len(p.listeners[re.compile("async_pattern")]) == 1
+        assert (
+            p.listeners[re.compile("async_pattern")][0].function
+            == FakePlugin.my_async_function.function
+        )
+
+        assert len(p.listeners[re.compile("another_async_pattern")]) == 1
+        assert (
+            p.listeners[re.compile("another_async_pattern")][0].function
+            == FakePlugin.my_async_function.function
+        )
 
     @mock.patch("snaketalk.driver.ThreadPool.add_task")
     def test_call_function(self, add_task):
-        driver = Driver()
-        p = FakePlugin().initialize(driver)
+        p = FakePlugin().initialize(Driver())
 
         # Since this is not an async function, a task should be added to the threadpool
         message = create_message(text="pattern")
@@ -142,3 +164,8 @@ class TestPlugin:
         p.my_async_function.function = mock.Mock(wraps=p.my_async_function.function)
         asyncio.run(p.call_function(FakePlugin.my_async_function, message, groups=[]))
         p.my_async_function.function.assert_called_once_with(p, message)
+
+    def test_help_string(self, snapshot):
+        p = FakePlugin().initialize(Driver())
+        # Compare the help string with the snapshotted version.
+        snapshot.assert_match(p.get_help_string())
