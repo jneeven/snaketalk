@@ -11,7 +11,7 @@ from .utils import start_bot  # noqa, we only import this so that the bot is sta
 OFF_TOPIC_ID = "8p516nuo8tfpdnhf56geskp7mc"  # Channel id
 TEAM_ID = "5u4q3izes387mq494benjxyzya"
 MAIN_BOT_ID = "7rfim79wnignxjqxzbd6fb9ofr"
-RESPONSE_TIMEOUT = 30
+RESPONSE_TIMEOUT = 5
 
 
 @pytest.fixture(scope="session")
