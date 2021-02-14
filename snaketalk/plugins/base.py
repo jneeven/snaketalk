@@ -137,7 +137,7 @@ class Plugin(ABC):
         else:
             # By default, we use the global threadpool of the driver, but we could use
             # a plugin-specific thread or process pool if we wanted.
-            self.driver.threadpool.add_task(function, (message, *groups))
+            self.driver.threadpool.add_task(function, message, *groups)
 
     def get_help_string(self):
         # TODO: implement help string

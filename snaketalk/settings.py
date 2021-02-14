@@ -17,6 +17,8 @@ class Settings:
     SSL_VERIFY: bool = True
     DEBUG: bool = False
     IGNORE_USERS: Sequence[str] = field(default_factory=list)
+    # How often to check whether any scheduled jobs need to be run, default every second
+    SCHEDULER_PERIOD: float = 1.0
 
     SCHEME: str = field(init=False)  # Will be taken from the URL. Defaults to https.
 
