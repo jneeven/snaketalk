@@ -24,10 +24,10 @@ Additional information:
         Prints the list of functions registered on every active plugin.
 ----
 - `async_pattern`:
-        Async function docstring
+        Async function docstring.
 ----
 - `another_async_pattern`:
-        Async function docstring
+        Async function docstring.
 Additional information:
     - Needs to be a direct message.
 ----
