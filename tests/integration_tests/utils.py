@@ -51,3 +51,6 @@ def start_bot(request):
         # If the lock times out, it means a bot is already running and we don't need
         # to do anything here.
         pass
+
+    finally:
+        time.sleep(5)  # Give the bot some time to start up
