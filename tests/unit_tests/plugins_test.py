@@ -161,9 +161,11 @@ class TestPlugin:
 
         # Since this is an async function, it should be called directly through asyncio.
         message = create_message(text="async_pattern")
-        p.my_async_function.function = mock.Mock(wraps=p.my_async_function.function)
-        asyncio.run(p.call_function(FakePlugin.my_async_function, message, groups=[]))
-        p.my_async_function.function.assert_called_once_with(p, message)
+        with mock.patch.object(p.my_async_function, "function") as mock_function:
+            asyncio.run(
+                p.call_function(FakePlugin.my_async_function, message, groups=[])
+            )
+            mock_function.assert_called_once_with(p, message)
 
     def test_help_string(self, snapshot):
         p = FakePlugin().initialize(Driver())
