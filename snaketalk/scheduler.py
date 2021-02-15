@@ -1,5 +1,6 @@
 from datetime import datetime
 from multiprocessing import Pipe, Process
+from multiprocessing.connection import Connection
 from threading import Thread
 from typing import Optional
 
@@ -33,7 +34,7 @@ def _run_job(self, job):
     """Overrides default_scheduler._run_job to run the jobs in a separate process and
     wait for the result in a dedicated thread."""
 
-    def wrapped_run(pipe: Pipe):
+    def wrapped_run(pipe: Connection):
         result = job.run()
         pipe.send(result)
 

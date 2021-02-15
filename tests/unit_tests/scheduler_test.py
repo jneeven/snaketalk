@@ -49,7 +49,7 @@ def test_recurring():
         file.readline() == "0"
 
         start = time.time()
-        end = start + 5.5  # We want to wait just over 5 seconds
+        end = start + 3.5  # We want to wait just over 3 seconds
         while time.time() < end:
             # Launch job and wait one second
             schedule.run_pending()
@@ -60,7 +60,7 @@ def test_recurring():
         # Nothing should happen from this point, even if we sleep another while
         time.sleep(2)
 
-        # We expect the job to have been launched 5 times, and since the sleep time
-        # in the job should not be blocking, the number must have increased 5 times.
+        # We expect the job to have been launched 3 times, and since the sleep time
+        # in the job should not be blocking, the number must have increased 3 times.
         file.seek(0)
-        assert file.readline() == "5"
+        assert file.readline() == "3"
