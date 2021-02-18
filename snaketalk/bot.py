@@ -4,7 +4,7 @@ from typing import Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.message_handler import MessageHandler
-from snaketalk.plugins import DefaultPlugin, Plugin
+from snaketalk.plugins import ExamplePlugin, Plugin
 from snaketalk.settings import Settings
 
 
@@ -15,9 +15,7 @@ class Bot:
     and settings. To start the bot, simply call bot.run().
     """
 
-    instance = None
-
-    def __init__(self, settings=Settings(), plugins=[DefaultPlugin()]):
+    def __init__(self, settings=Settings(), plugins=[ExamplePlugin()]):
         logging.basicConfig(
             **{
                 "format": "[%(asctime)s] %(message)s",
@@ -29,11 +27,11 @@ class Bot:
         self.settings = settings
         self.driver = Driver(
             {
-                "url": settings.BOT_URL,
-                "port": 443,
+                "url": settings.MATTERMOST_URL,
+                "port": settings.MATTERMOST_PORT,
                 "token": settings.BOT_TOKEN,
+                "scheme": settings.SCHEME,
                 "verify": settings.SSL_VERIFY,
-                "timeout": 0.5,
             }
         )
         self.driver.login()
@@ -48,12 +46,20 @@ class Bot:
         return plugins
 
     def run(self):
+        logging.info(f"Starting bot {self.__class__.__name__}.")
         try:
+            self.driver.threadpool.start()
+            for plugin in self.plugins:
+                plugin.on_start()
             self.message_handler.start()
         except KeyboardInterrupt as e:
-            # Shutdown the running plugins
-            for plugin in self.plugins:
-                plugin.on_stop()
-            # Stop the threadpool
-            self.driver.threadpool.stop()
+            self.stop()
             raise e
+
+    def stop(self):
+        logging.info("Stopping bot.")
+        # Shutdown the running plugins
+        for plugin in self.plugins:
+            plugin.on_stop()
+        # Stop the threadpool
+        self.driver.threadpool.stop()

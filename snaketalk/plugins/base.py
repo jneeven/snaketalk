@@ -1,8 +1,9 @@
 import asyncio
+import logging
 import re
 from abc import ABC
 from collections import defaultdict
-from typing import Callable, Dict, Optional, Sequence
+from typing import Callable, Dict, Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.message import Message
@@ -14,7 +15,7 @@ def listen_to(
     *,
     direct_only=False,
     needs_mention=False,
-    allowed_users=None,
+    allowed_users=[],
 ):
     """Wrap the given function in a Function class so we can register some
     properties."""
@@ -47,9 +48,9 @@ class Function:
         self,
         function: Callable,
         matcher: re.Pattern,
-        direct_only: bool,
-        needs_mention: bool,
-        allowed_users: Optional[Sequence] = None,
+        direct_only: bool = False,
+        needs_mention: bool = False,
+        allowed_users: Sequence[str] = [],
     ):
         while isinstance(function, Function):
             function = function.function
@@ -60,7 +61,7 @@ class Function:
         self.matcher = matcher
         self.direct_only = direct_only
         self.needs_mention = needs_mention
-        self.allowed_users = allowed_users
+        self.allowed_users = [user.lower() for user in allowed_users]
 
         self.plugin = None
 
@@ -110,28 +111,29 @@ class Plugin(ABC):
                 attribute.plugin = self
                 self.listeners[attribute.matcher].append(attribute)
 
-        self.on_start()
+        return self
 
     def on_start(self):
         """Will be called after initialization.
 
         Can be overridden on the subclass if desired.
         """
-        # TODO: make this a debug log
-        print(f"{self.__class__.__name__}.on_start() called!")
+        logging.debug(f"Plugin {self.__class__.__name__} started!")
+        return self
 
     def on_stop(self):
         """Will be called when the bot is shut down manually.
 
         Can be overridden on the subclass if desired.
         """
-        return
+        logging.debug(f"Plugin {self.__class__.__name__} stopped!")
+        return self
 
     async def call_function(
         self, function: Function, message: Message, groups: Sequence[str]
     ):
         if function.is_coroutine:
-            await function(message, *groups)
+            await function(message, *groups)  # type:ignore
         else:
             # By default, we use the global threadpool of the driver, but we could use
             # a plugin-specific thread or process pool if we wanted.
