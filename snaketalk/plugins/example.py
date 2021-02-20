@@ -48,7 +48,25 @@ class ExamplePlugin(Plugin):
         file.write_text("Hello from this file!")
         self.driver.reply_to(message, "Here you go", file_paths=[file])
 
-    # TODO: add webhook call option
+    @listen_to("^!hello_webhook$", re.IGNORECASE)
+    async def hello_webhook(self, message: Message):
+        self.driver.webhooks.call_webhook(
+            "eauegoqk4ibxigfybqrsfmt48r",
+            options={
+                "username": "webhook_test",  # Requires the right webhook permissions
+                "channel": "off-topic",
+                "text": "Hello?",
+                "attachments": [
+                    {
+                        "fallback": "Fallback text",
+                        "title": "Title",
+                        "author_name": "Author",
+                        "text": "Attachment text here...",
+                        "color": "#59afe1",
+                    }
+                ],
+            },
+        )
 
     @listen_to("^!info$")
     async def info(self, message: Message):
