@@ -33,17 +33,6 @@ class MessageHandler(object):
             for matcher, functions in plugin.listeners.items():
                 self.listeners[matcher].extend(functions)
 
-        print("Registered listeners:")
-        print(
-            json.dumps(
-                {
-                    pattern.pattern: list([function.name for function in functions])
-                    for (pattern, functions) in self.listeners.items()
-                },
-                indent=4,
-            )
-        )
-
     def start(self):
         # This is blocking, will loop forever
         self.driver.init_websocket(self.handle_event)

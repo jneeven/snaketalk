@@ -1,9 +1,12 @@
 import asyncio
+import inspect
 import logging
 import re
 from abc import ABC
 from collections import defaultdict
 from typing import Callable, Dict, Sequence
+
+import click
 
 from snaketalk.driver import Driver
 from snaketalk.message import Message
@@ -21,7 +24,21 @@ def listen_to(
     properties."""
 
     def wrapped_func(func):
-        pattern = re.compile(regexp, regexp_flag)
+        reg = regexp
+        if isinstance(func, click.Command):
+            if "$" in regexp:
+                raise ValueError(
+                    f"Regexp of function {func.callback} contains a $, which is not"
+                    " supported! The regexp should simply reflect the argument name, and"
+                    " click will take care of the rest."
+                )
+
+            # Modify the regexp so that it won't try to match the individual arguments.
+            # Click will take care of those. We also manually add the ^ if necessary,
+            # so that the commands can't be inserted in the middle of a sentence.
+            reg = f"^{reg.strip('^')} (.*)?"  # noqa
+
+        pattern = re.compile(reg, regexp_flag)
         return Function(
             func,
             matcher=pattern,
@@ -38,6 +55,11 @@ def _completed_future():
     future = asyncio.Future()
     future.set_result(True)
     return future
+
+
+def spaces(num: int):
+    """Utility function to easily indent strings."""
+    return " " * num
 
 
 class Function:
@@ -61,13 +83,37 @@ class Function:
             function = function.function
 
         self.function = function
+        self.is_click_function = isinstance(self.function, click.Command)
         self.is_coroutine = asyncio.iscoroutinefunction(function)
-        self.name = function.__qualname__
-
         self.matcher = matcher
         self.direct_only = direct_only
         self.needs_mention = needs_mention
         self.allowed_users = [user.lower() for user in allowed_users]
+
+        if self.is_click_function:
+            _function = function.callback
+            if asyncio.iscoroutinefunction(_function):
+                raise ValueError(
+                    "Combining click functions and coroutines is currently not supported!"
+                    " Consider using a regular function, which will be threaded by default."
+                )
+            with click.Context(
+                function, info_name=self.matcher.pattern.strip("^").split(" (.*)?")[0]
+            ) as ctx:
+                # Get click help string and do some extra formatting
+                self.docstring = function.get_help(ctx).replace("\n", f"\n{spaces(8)}")
+        else:
+            _function = function
+            self.docstring = function.__doc__
+
+        self.name = _function.__qualname__
+
+        argspec = list(inspect.signature(_function).parameters.keys())
+        if not argspec[:2] == ["self", "message"]:
+            raise TypeError(
+                "Any listener function should at least have the positional arguments"
+                f" `self` and `message`, but function {self.name} has arguments {argspec}."
+            )
 
         self.plugin = None
 
@@ -91,12 +137,51 @@ class Function:
             )
             return return_value
 
+        if self.is_click_function:
+            assert len(args) <= 1  # There is only one group, (.*)?
+            if len(args) == 1:
+                # Turn space-separated string into list
+                args = args[0].strip(" ").split(" ")
+            try:
+                ctx = self.function.make_context(
+                    info_name=self.plugin.__class__.__name__, args=list(args)
+                )
+                ctx.params.update({"self": self.plugin, "message": message})
+                return self.function.invoke(ctx)
+            # If there are any missing arguments or the function is otherwise called
+            # incorrectly, send the click message back to the user and print help string.
+            except click.exceptions.ClickException as e:
+                return self.plugin.driver.reply_to(message, f"{e}\n{self.docstring}")
+
         return self.function(self.plugin, message, *args)
 
+    def get_help_string(self):
+        string = f"`{self.matcher.pattern}`:\n"
+        # Add a docstring
+        doc = self.docstring or "No description provided."
+        string += f"{spaces(8)}{doc}\n"
 
-def spaces(num: int):
-    """Utility function to easily indent strings."""
-    return " " * num
+        if any(
+            [
+                self.needs_mention,
+                self.direct_only,
+                self.allowed_users,
+            ]
+        ):
+            # Print some information describing the usage settings.
+            string += f"{spaces(4)}Additional information:\n"
+            if self.needs_mention:
+                string += (
+                    f"{spaces(4)}- Needs to either mention @{self.plugin.driver.username}"
+                    " or be a direct message.\n"
+                )
+            if self.direct_only:
+                string += f"{spaces(4)}- Needs to be a direct message.\n"
+
+            if self.allowed_users:
+                string += f"{spaces(4)}- Restricted to certain users.\n"
+
+        return string
 
 
 class Plugin(ABC):
@@ -155,35 +240,10 @@ class Plugin(ABC):
     def get_help_string(self):
         string = f"Plugin {self.__class__.__name__} has the following functions:\n"
         string += "----\n"
-        for matcher, functions in self.listeners.items():
+        for functions in self.listeners.values():
             for function in functions:
-                string += f"- `{matcher.pattern}`:\n"
-                func = function.function
-                # Add a docstring
-                doc = func.__doc__ or "No description provided."
-                string += f"{spaces(8)}{doc}\n"
-
-                if any(
-                    [
-                        function.needs_mention,
-                        function.direct_only,
-                        function.allowed_users,
-                    ]
-                ):
-                    # Print some information describing the usage settings.
-                    string += "Additional information:\n"
-                    if function.needs_mention:
-                        string += (
-                            f"{spaces(4)}- Needs to either mention @{self.driver.username}"
-                            " or be a direct message.\n"
-                        )
-                    if function.direct_only:
-                        string += f"{spaces(4)}- Needs to be a direct message.\n"
-
-                    if function.allowed_users:
-                        string += f"{spaces(4)}- Restricted to certain users.\n"
-
-                string += "----\n"
+                string += f"- {function.get_help_string()}"
+            string += "----\n"
 
         return string
 

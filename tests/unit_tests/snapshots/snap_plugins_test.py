@@ -9,15 +9,24 @@ snapshots = Snapshot()
 
 snapshots['TestPlugin.test_help_string 1'] = '''Plugin FakePlugin has the following functions:
 ----
+- `^click_command (.*)?`:
+        Usage: click_command [OPTIONS]
+        
+          Help string for the entire function.
+        
+        Options:
+          --option INTEGER  Help string for the optional argument.
+          --help            Show this message and exit.
+----
 - `direct_pattern`:
         No description provided.
-Additional information:
+    Additional information:
     - Needs to be a direct message.
     - Restricted to certain users.
 ----
 - `^help$`:
         Prints the list of functions registered on every active plugin.
-Additional information:
+    Additional information:
     - Needs to either mention @ or be a direct message.
 ----
 - `^!help$`:
@@ -28,7 +37,7 @@ Additional information:
 ----
 - `another_async_pattern`:
         Async function docstring.
-Additional information:
+    Additional information:
     - Needs to be a direct message.
 ----
 - `pattern`:
