@@ -35,7 +35,7 @@ def listen_to(
             # Modify the regexp so that it won't try to match the individual arguments.
             # Click will take care of those. We also manually add the ^ if necessary,
             # so that the commands can't be inserted in the middle of a sentence.
-            reg = f"^{reg.strip('^')} (.*)"  # noqa
+            reg = f"^{reg.strip('^')}(.*)?"  # noqa
 
         pattern = re.compile(reg, regexp_flag)
         return Function(
@@ -124,13 +124,21 @@ class Function:
             return return_value
 
         if self.is_click_function:
-            assert len(args) == 1  # There is only one group, (.*)
-            args = args[0].split(" ")  # Turn space-separated string into list
-            ctx = self.function.make_context(
-                info_name=self.plugin.__class__.__name__, args=args
-            )
-            print(ctx.args)
-            return self.function.invoke(ctx)
+            args = list(args)  # Convert tuple to list
+            assert len(args) <= 1  # There is only one group, (.*)?
+            if len(args) == 1:
+                # Turn space-separated string into list
+                args = args[0].strip(" ").split(" ")
+            try:
+                ctx = self.function.make_context(
+                    info_name=self.plugin.__class__.__name__, args=args
+                )
+                ctx.params.update({"self": self.plugin, "message": message})
+                return self.function.invoke(ctx)
+            # If there are any missing arguments or the function is otherwise called
+            # incorrectly, send the click message back to the user and print help string.
+            except click.exceptions.ClickException as e:
+                return self.plugin.driver.reply_to(message, f"{e}\n{self.docstring}")
 
         return self.function(self.plugin, message, *args)
 
@@ -219,7 +227,7 @@ class Plugin(ABC):
     def get_help_string(self):
         string = f"Plugin {self.__class__.__name__} has the following functions:\n"
         string += "----\n"
-        for matcher, functions in self.listeners.items():
+        for functions in self.listeners.values():
             for function in functions:
                 string += f"- {function.get_help_string()}"
             string += "----\n"

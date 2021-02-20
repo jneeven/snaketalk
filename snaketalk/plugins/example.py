@@ -29,20 +29,20 @@ class ExamplePlugin(Plugin):
         )
 
     @listen_to("hello_click", needs_mention=True)
-    @click.command()
+    @click.command(help="Some info about this command.")
     @click.argument("POSITIONAL_ARG", type=str)
-    # @click.option("keyword_arg", type=float, default=5.0)
-    @click.option("-f", "--flag", is_flag=True)
-    async def hello_click(
+    @click.option("--keyword_arg", type=float, default=5.0, help="A keyword arg.")
+    @click.option("-f", "--flag", is_flag=True, help="Can be toggled.")
+    def hello_click(
         self, message: Message, positional_arg: str, keyword_arg: float, flag: bool
     ):
-        self.driver.reply_to(
-            message,
+        response = (
             "Received the following arguments:\n"
-            f"- positional_arg: {positional_arg}\n",
-            f"- keyword_arg: {keyword_arg}\n",
-            f"- flag: {flag}\n",
+            f"- positional_arg: {positional_arg}\n"
+            f"- keyword_arg: {keyword_arg}\n"
+            f"- flag: {flag}\n"
         )
+        self.driver.reply_to(message, response)
 
     @listen_to("^hello_channel$", needs_mention=True)
     async def hello_channel(self, message: Message):
