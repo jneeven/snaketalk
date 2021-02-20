@@ -1,11 +1,14 @@
+import logging
 import queue
 import threading
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
 import mattermostdriver
 
 from snaketalk.message import Message
+from snaketalk.scheduler import default_scheduler
 
 
 class ThreadPool(object):
@@ -22,8 +25,8 @@ class ThreadPool(object):
         self._busy_workers = queue.Queue()
         self._threads = []
 
-    def add_task(self, *args):
-        self._queue.put(args)
+    def add_task(self, function, *args):
+        self._queue.put((function, args))
 
     def get_busy_workers(self):
         return self._busy_workers.qsize()
@@ -62,6 +65,15 @@ class ThreadPool(object):
             # Notify the pool that we finished working
             self._queue.task_done()
             self._busy_workers.get()
+
+    def start_scheduler_thread(self, trigger_period: float):
+        def run_pending():
+            logging.info("Scheduler thread started.")
+            while self.alive:
+                time.sleep(trigger_period)
+                default_scheduler.run_pending()
+
+        self.add_task(run_pending)
 
 
 class Driver(mattermostdriver.Driver):

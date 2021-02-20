@@ -156,7 +156,7 @@ class TestPlugin:
             p.call_function(FakePlugin.my_function, message, groups=["test", "another"])
         )
         add_task.assert_called_once_with(
-            FakePlugin.my_function, (message, "test", "another")
+            FakePlugin.my_function, message, "test", "another"
         )
 
         # Since this is an async function, it should be called directly through asyncio.

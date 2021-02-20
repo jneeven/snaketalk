@@ -49,6 +49,10 @@ class Bot:
         logging.info(f"Starting bot {self.__class__.__name__}.")
         try:
             self.driver.threadpool.start()
+            # Start a thread to run potential scheduled jobs
+            self.driver.threadpool.start_scheduler_thread(
+                self.settings.SCHEDULER_PERIOD
+            )
             for plugin in self.plugins:
                 plugin.on_start()
             self.message_handler.start()
