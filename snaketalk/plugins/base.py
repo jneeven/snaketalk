@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import logging
 import re
 from abc import ABC
@@ -82,24 +83,39 @@ class Function:
             function = function.function
 
         self.function = function
-        # TODO: check if the function has at least a `self` and a `message` argument.
-
         self.is_click_function = isinstance(self.function, click.Command)
         self.is_coroutine = asyncio.iscoroutinefunction(function)
-
-        if self.is_click_function:
-            self.name = function.name
-            with click.Context(function) as ctx:
-                # Get click help string and do some extra formatting
-                self.docstring = function.get_help(ctx).replace("\n", f"\n{spaces(8)}")
-        else:
-            self.name = function.__qualname__
-            self.docstring = function.__doc__
-
         self.matcher = matcher
         self.direct_only = direct_only
         self.needs_mention = needs_mention
         self.allowed_users = [user.lower() for user in allowed_users]
+
+        if self.is_click_function and self.is_coroutine:
+            raise ValueError(
+                "Combining click functions and coroutines is currently not supported!"
+                " Consider using a regular function, which will be threaded by default."
+            )
+
+        if self.is_click_function:
+            with click.Context(
+                function, info_name=self.matcher.pattern.strip("^").split("(.*)?")[0]
+            ) as ctx:
+                # Get click help string and do some extra formatting
+                self.docstring = function.get_help(ctx).replace("\n", f"\n{spaces(8)}")
+            _function = function.callback
+        else:
+            self.docstring = function.__doc__
+            _function = function
+
+        self.name = _function.__qualname__
+
+        argspec = list(inspect.signature(_function).parameters.keys())
+        print(self.name, argspec)
+        if not argspec[:2] == ["self", "message"]:
+            raise TypeError(
+                "Any listener function should at least have the positional arguments"
+                f" `self` and `message`, but function {self.name} has arguments {argspec}."
+            )
 
         self.plugin = None
 
