@@ -124,14 +124,13 @@ class Function:
             return return_value
 
         if self.is_click_function:
-            args = list(args)  # Convert tuple to list
             assert len(args) <= 1  # There is only one group, (.*)?
             if len(args) == 1:
                 # Turn space-separated string into list
                 args = args[0].strip(" ").split(" ")
             try:
                 ctx = self.function.make_context(
-                    info_name=self.plugin.__class__.__name__, args=args
+                    info_name=self.plugin.__class__.__name__, args=list(args)
                 )
                 ctx.params.update({"self": self.plugin, "message": message})
                 return self.function.invoke(ctx)
