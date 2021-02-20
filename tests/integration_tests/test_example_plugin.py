@@ -76,6 +76,26 @@ class TestExamplePlugin:
         reply = expect_reply(driver, post)
         assert reply["message"] == "You do not have permission to perform this action!"
 
+    def test_hello_click(self, driver):
+        post = driver.create_post(OFF_TOPIC_ID, "@main_bot hello_click arg1")
+        reply = expect_reply(driver, post)
+        assert reply["message"] == (
+            "Received the following arguments:\n"
+            "- positional_arg: arg1\n"
+            "- keyword_arg: 5.0\n"
+            "- flag: False\n"
+        )
+        post = driver.create_post(
+            OFF_TOPIC_ID, "@main_bot hello_click arg2 -f --keyword-arg=7"
+        )
+        reply = expect_reply(driver, post)
+        assert reply["message"] == (
+            "Received the following arguments:\n"
+            "- positional_arg: arg2\n"
+            "- keyword_arg: 7.0\n"
+            "- flag: True\n"
+        )
+
     def test_hello_channel(self, driver):
         original_post = driver.create_post(OFF_TOPIC_ID, "@main_bot hello_channel")
         time.sleep(RESPONSE_TIMEOUT)
