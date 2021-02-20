@@ -4,8 +4,9 @@ from typing import Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.message_handler import MessageHandler
-from snaketalk.plugins import ExamplePlugin, Plugin
+from snaketalk.plugins import ExamplePlugin, WebhookExample, Plugin
 from snaketalk.settings import Settings
+from snaketalk.webhook_server import WebhookServer
 
 
 class Bot:
@@ -15,7 +16,7 @@ class Bot:
     and settings. To start the bot, simply call bot.run().
     """
 
-    def __init__(self, settings=Settings(), plugins=[ExamplePlugin()]):
+    def __init__(self, settings=Settings(), plugins=[ExamplePlugin(), WebhookExample()]):
         logging.basicConfig(
             **{
                 "format": "[%(asctime)s] %(message)s",
@@ -39,6 +40,7 @@ class Bot:
         self.message_handler = MessageHandler(
             self.driver, settings=self.settings, plugins=self.plugins
         )
+        self.webhook_server = WebhookServer()
 
     def _initialize_plugins(self, plugins: Sequence[Plugin]):
         for plugin in plugins:
@@ -55,7 +57,14 @@ class Bot:
             )
             for plugin in self.plugins:
                 plugin.on_start()
+            if self.settings.WEBHOOK_HOST_ENABLED:
+                webhook_host_ip = self.settings.WEBHOOK_HOST_URL
+                webhook_host_port = self.settings.WEBHOOK_HOST_PORT
+                logging.info("Starting webhook server on "
+                             f"{webhook_host_ip}:{webhook_host_port}")
+                self.webhook_server.start()
             self.message_handler.start()
+
         except KeyboardInterrupt as e:
             self.stop()
             raise e
