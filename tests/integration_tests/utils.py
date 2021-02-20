@@ -9,7 +9,7 @@ from snaketalk import Bot, ExamplePlugin, Message, Plugin, Settings, listen_to
 
 class TestPlugin(Plugin):
     @listen_to("^starting integration tests")
-    def reply_start(self, message: Message):
+    async def reply_start(self, message: Message):
         self.driver.reply_to(message, "Bring it on!")
 
 
