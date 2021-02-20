@@ -5,6 +5,8 @@ from abc import ABC
 from collections import defaultdict
 from typing import Callable, Dict, Sequence
 
+import click
+
 from snaketalk.driver import Driver
 from snaketalk.message import Message
 
@@ -21,7 +23,21 @@ def listen_to(
     properties."""
 
     def wrapped_func(func):
-        pattern = re.compile(regexp, regexp_flag)
+        reg = regexp
+        if isinstance(func, click.Command):
+            if "$" in regexp:
+                raise ValueError(
+                    f"Regexp of function {func.callback} contains a $, which is not"
+                    " supported! The regexp should simply reflect the argument name, and"
+                    " click will take care of the rest."
+                )
+
+            # Modify the regexp so that it won't try to match the individual arguments.
+            # Click will take care of those. We also manually add the ^ if necessary,
+            # so that the commands can't be inserted in the middle of a sentence.
+            reg = f"^{reg.strip('^')} (.*)"  # noqa
+
+        pattern = re.compile(reg, regexp_flag)
         return Function(
             func,
             matcher=pattern,
@@ -38,6 +54,11 @@ def _completed_future():
     future = asyncio.Future()
     future.set_result(True)
     return future
+
+
+def spaces(num: int):
+    """Utility function to easily indent strings."""
+    return " " * num
 
 
 class Function:
@@ -61,8 +82,19 @@ class Function:
             function = function.function
 
         self.function = function
+        # TODO: check if the function has at least a `self` and a `message` argument.
+
+        self.is_click_function = isinstance(self.function, click.Command)
         self.is_coroutine = asyncio.iscoroutinefunction(function)
-        self.name = function.__qualname__
+
+        if self.is_click_function:
+            self.name = function.name
+            with click.Context(function) as ctx:
+                # Get click help string and do some extra formatting
+                self.docstring = function.get_help(ctx).replace("\n", f"\n{spaces(8)}")
+        else:
+            self.name = function.__qualname__
+            self.docstring = function.__doc__
 
         self.matcher = matcher
         self.direct_only = direct_only
@@ -91,12 +123,44 @@ class Function:
             )
             return return_value
 
+        if self.is_click_function:
+            assert len(args) == 1  # There is only one group, (.*)
+            args = args[0].split(" ")  # Turn space-separated string into list
+            ctx = self.function.make_context(
+                info_name=self.plugin.__class__.__name__, args=args
+            )
+            print(ctx.args)
+            return self.function.invoke(ctx)
+
         return self.function(self.plugin, message, *args)
 
+    def get_help_string(self):
+        string = f"`{self.matcher.pattern}`:\n"
+        # Add a docstring
+        doc = self.docstring or "No description provided."
+        string += f"{spaces(8)}{doc}\n"
 
-def spaces(num: int):
-    """Utility function to easily indent strings."""
-    return " " * num
+        if any(
+            [
+                self.needs_mention,
+                self.direct_only,
+                self.allowed_users,
+            ]
+        ):
+            # Print some information describing the usage settings.
+            string += f"{spaces(4)}Additional information:\n"
+            if self.needs_mention:
+                string += (
+                    f"{spaces(4)}- Needs to either mention @{self.plugin.driver.username}"
+                    " or be a direct message.\n"
+                )
+            if self.direct_only:
+                string += f"{spaces(4)}- Needs to be a direct message.\n"
+
+            if self.allowed_users:
+                string += f"{spaces(4)}- Restricted to certain users.\n"
+
+        return string
 
 
 class Plugin(ABC):
@@ -157,33 +221,8 @@ class Plugin(ABC):
         string += "----\n"
         for matcher, functions in self.listeners.items():
             for function in functions:
-                string += f"- `{matcher.pattern}`:\n"
-                func = function.function
-                # Add a docstring
-                doc = func.__doc__ or "No description provided."
-                string += f"{spaces(8)}{doc}\n"
-
-                if any(
-                    [
-                        function.needs_mention,
-                        function.direct_only,
-                        function.allowed_users,
-                    ]
-                ):
-                    # Print some information describing the usage settings.
-                    string += "Additional information:\n"
-                    if function.needs_mention:
-                        string += (
-                            f"{spaces(4)}- Needs to either mention @{self.driver.username}"
-                            " or be a direct message.\n"
-                        )
-                    if function.direct_only:
-                        string += f"{spaces(4)}- Needs to be a direct message.\n"
-
-                    if function.allowed_users:
-                        string += f"{spaces(4)}- Restricted to certain users.\n"
-
-                string += "----\n"
+                string += f"- {function.get_help_string()}"
+            string += "----\n"
 
         return string
 

@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import click
 import mattermostdriver
 
 from snaketalk.message import Message
@@ -25,6 +26,22 @@ class ExamplePlugin(Plugin):
         self.driver.reply_to(
             message,
             f"Number of busy worker threads: {busy}",
+        )
+
+    @listen_to("hello_click", needs_mention=True)
+    @click.command()
+    @click.argument("POSITIONAL_ARG", type=str)
+    # @click.option("keyword_arg", type=float, default=5.0)
+    @click.option("-f", "--flag", is_flag=True)
+    async def hello_click(
+        self, message: Message, positional_arg: str, keyword_arg: float, flag: bool
+    ):
+        self.driver.reply_to(
+            message,
+            "Received the following arguments:\n"
+            f"- positional_arg: {positional_arg}\n",
+            f"- keyword_arg: {keyword_arg}\n",
+            f"- flag: {flag}\n",
         )
 
     @listen_to("^hello_channel$", needs_mention=True)
