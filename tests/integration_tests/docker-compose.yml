@@ -5,6 +5,7 @@ services:
     container_name: "mattermost-bot-test"
     image: jneeven/mattermost-bot-test:new_tokens_14.02.2021
     command: ./mm/docker-entry.sh
+    network_mode: host
     ports:
       - "8065:8065"
     extra_hosts:
