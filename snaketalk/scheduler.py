@@ -31,18 +31,28 @@ def _default_scheduler_once(self, trigger_time: datetime):
 
 
 def _run_job(self, job):
-    """Overrides default_scheduler._run_job to run the jobs in a separate process and
-    wait for the result in a dedicated thread."""
+    """Overrides default_scheduler._run_job to support running the jobs in a separate
+    process.
 
-    def wrapped_run(pipe: Connection):
-        result = job.run()
-        pipe.send(result)
+    Either way, this waits for the result in a dedicated thread to prevent blocking the
+    event loop.
+    """
 
     def launch_and_wait():
-        pipe, child_pipe = Pipe()
-        p = Process(target=wrapped_run, args=(child_pipe,))
-        p.start()
-        result = pipe.recv()
+        # Launch job in a dedicated process and send the result through a pipe.
+        if "subprocess" in job.tags:
+
+            def wrapped_run(pipe: Connection):
+                result = job.run()
+                pipe.send(result)
+
+            pipe, child_pipe = Pipe()
+            p = Process(target=wrapped_run, args=(child_pipe,))
+            p.start()
+            result = pipe.recv()
+        else:
+            # Or simply run the job in this thread
+            result = job.run()
 
         if isinstance(result, schedule.CancelJob) or result is schedule.CancelJob:
             self.cancel_job(job)
