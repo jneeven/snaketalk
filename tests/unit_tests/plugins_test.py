@@ -2,17 +2,24 @@ import asyncio
 import re
 from unittest import mock
 
+import click
+
 from snaketalk import ExamplePlugin, Function, Plugin, listen_to
 from snaketalk.driver import Driver
 
 from .message_handler_test import create_message
 
 
+def example_listener(self, message):
+    # Used to copy the arg specs to mock.Mock functions.
+    pass
+
+
 class TestFunction:
     def test_listen_to(self):
         pattern = "test_regexp"
 
-        def original_function():
+        def original_function(self, message):
             pass
 
         wrapped_function = listen_to(pattern, re.IGNORECASE)(original_function)
@@ -24,19 +31,19 @@ class TestFunction:
 
     def test_is_coroutine(self):
         @listen_to("")
-        async def coroutine():
+        async def coroutine(self, message):
             pass
 
         assert coroutine.is_coroutine
 
         @listen_to("")
-        def not_a_coroutine():
+        def not_a_coroutine(self, message):
             pass
 
         assert not not_a_coroutine.is_coroutine
 
     def test_wrap_function(self):  # noqa
-        def wrapped(instance, message, arg1, arg2):
+        def wrapped(self, message, arg1, arg2):
             return arg1, arg2
 
         f = Function(wrapped, matcher=re.compile(""))
@@ -49,9 +56,12 @@ class TestFunction:
         assert new_f.matcher.pattern == "a"
         assert f in new_f.siblings
 
+    def test_click_function(self):
+        pass
+
     @mock.patch("snaketalk.driver.Driver.user_id", "qmw86q7qsjriura9jos75i4why")
     def test_needs_mention(self):  # noqa
-        wrapped = mock.MagicMock()
+        wrapped = mock.create_autospec(example_listener)
         wrapped.__qualname__ = "wrapped"
         f = listen_to("", needs_mention=True)(wrapped)
         f.plugin = ExamplePlugin().initialize(Driver())
@@ -71,7 +81,7 @@ class TestFunction:
 
     @mock.patch("snaketalk.driver.Driver.user_id", "qmw86q7qsjriura9jos75i4why")
     def test_direct_only(self):
-        wrapped = mock.MagicMock()
+        wrapped = mock.create_autospec(example_listener)
         wrapped.__qualname__ = "wrapped"
         f = listen_to("", direct_only=True)(wrapped)
 
@@ -83,7 +93,7 @@ class TestFunction:
         wrapped.assert_called_once()
 
     def test_allowed_users(self):
-        wrapped = mock.MagicMock()
+        wrapped = mock.create_autospec(example_listener)
         wrapped.__qualname__ = "wrapped"
         # Create a driver with a mocked reply function
         driver = Driver()
@@ -122,6 +132,18 @@ class FakePlugin(Plugin):
     @listen_to("another_async_pattern", direct_only=True)
     async def my_async_function(self, message):
         """Async function docstring."""
+        pass
+
+    @listen_to("click_command")
+    @click.command(help="Help string for the entire function.")
+    @click.option(
+        "--option", type=int, default=0, help="Help string for the optional argument."
+    )
+    def click_commmand(self, message, option):
+        """Ignored docstring.
+
+        Just for code readability.
+        """
         pass
 
 

@@ -31,7 +31,7 @@ class ExamplePlugin(Plugin):
     @listen_to("hello_click", needs_mention=True)
     @click.command(help="Some info about this command.")
     @click.argument("POSITIONAL_ARG", type=str)
-    @click.option("--keyword_arg", type=float, default=5.0, help="A keyword arg.")
+    @click.option("--keyword-arg", type=float, default=5.0, help="A keyword arg.")
     @click.option("-f", "--flag", is_flag=True, help="Can be toggled.")
     def hello_click(
         self, message: Message, positional_arg: str, keyword_arg: float, flag: bool

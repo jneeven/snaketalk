@@ -36,7 +36,7 @@ def listen_to(
             # Modify the regexp so that it won't try to match the individual arguments.
             # Click will take care of those. We also manually add the ^ if necessary,
             # so that the commands can't be inserted in the middle of a sentence.
-            reg = f"^{reg.strip('^')}(.*)?"  # noqa
+            reg = f"^{reg.strip('^')} (.*)?"  # noqa
 
         pattern = re.compile(reg, regexp_flag)
         return Function(
@@ -98,7 +98,7 @@ class Function:
 
         if self.is_click_function:
             with click.Context(
-                function, info_name=self.matcher.pattern.strip("^").split("(.*)?")[0]
+                function, info_name=self.matcher.pattern.strip("^").split(" (.*)?")[0]
             ) as ctx:
                 # Get click help string and do some extra formatting
                 self.docstring = function.get_help(ctx).replace("\n", f"\n{spaces(8)}")
