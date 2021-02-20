@@ -6,3 +6,4 @@ isort==5.7.0
 pytest==6.2.2
 pytest-xdist==2.2.1
 pytype==2021.1.28
+snapshottest==0.6.0

@@ -52,8 +52,14 @@ class Function:
         needs_mention: bool = False,
         allowed_users: Sequence[str] = [],
     ):
+        # If another Function was passed, keep track of all these siblings.
+        # We later use them to register not only the outermost Function, but also any
+        # stacked ones.
+        self.siblings = []
         while isinstance(function, Function):
+            self.siblings.append(function)
             function = function.function
+
         self.function = function
         self.is_coroutine = asyncio.iscoroutinefunction(function)
         self.name = function.__qualname__
@@ -88,6 +94,11 @@ class Function:
         return self.function(self.plugin, message, *args)
 
 
+def spaces(num: int):
+    """Utility function to easily indent strings."""
+    return " " * num
+
+
 class Plugin(ABC):
     """A Plugin is a self-contained class that defines what functions should be executed
     given different inputs.
@@ -108,8 +119,10 @@ class Plugin(ABC):
         for attribute in dir(self):
             attribute = getattr(self, attribute)
             if isinstance(attribute, Function):
-                attribute.plugin = self
-                self.listeners[attribute.matcher].append(attribute)
+                # Register this function and any potential siblings
+                for function in [attribute] + attribute.siblings:
+                    function.plugin = self
+                    self.listeners[function.matcher].append(function)
 
         return self
 
@@ -140,9 +153,42 @@ class Plugin(ABC):
             self.driver.threadpool.add_task(function, (message, *groups))
 
     def get_help_string(self):
-        # TODO: implement help string
-        return ""
+        string = f"Plugin {self.__class__.__name__} has the following functions:\n"
+        string += "----\n"
+        for matcher, functions in self.listeners.items():
+            for function in functions:
+                string += f"- `{matcher.pattern}`:\n"
+                func = function.function
+                # Add a docstring
+                doc = func.__doc__ or "No description provided."
+                string += f"{spaces(8)}{doc}\n"
 
+                if any(
+                    [
+                        function.needs_mention,
+                        function.direct_only,
+                        function.allowed_users,
+                    ]
+                ):
+                    # Print some information describing the usage settings.
+                    string += "Additional information:\n"
+                    if function.needs_mention:
+                        string += (
+                            f"{spaces(4)}- Needs to either mention @{self.driver.username}"
+                            " or be a direct message.\n"
+                        )
+                    if function.direct_only:
+                        string += f"{spaces(4)}- Needs to be a direct message.\n"
+
+                    if function.allowed_users:
+                        string += f"{spaces(4)}- Restricted to certain users.\n"
+
+                string += "----\n"
+
+        return string
+
+    @listen_to("^help$", needs_mention=True)
     @listen_to("^!help$")
-    async def help_request(self, message: Message):
+    async def help(self, message: Message):
+        """Prints the list of functions registered on every active plugin."""
         self.driver.reply_to(message, self.get_help_string())
