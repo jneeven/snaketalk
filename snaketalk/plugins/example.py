@@ -29,7 +29,7 @@ class ExamplePlugin(Plugin):
         )
 
     @listen_to("hello_click", needs_mention=True)
-    @click.command(help="Some info about this command.")
+    @click.command(help="An example click command with various arguments.")
     @click.argument("POSITIONAL_ARG", type=str)
     @click.option("--keyword-arg", type=float, default=5.0, help="A keyword arg.")
     @click.option("-f", "--flag", is_flag=True, help="Can be toggled.")

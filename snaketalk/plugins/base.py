@@ -90,27 +90,25 @@ class Function:
         self.needs_mention = needs_mention
         self.allowed_users = [user.lower() for user in allowed_users]
 
-        if self.is_click_function and self.is_coroutine:
-            raise ValueError(
-                "Combining click functions and coroutines is currently not supported!"
-                " Consider using a regular function, which will be threaded by default."
-            )
-
         if self.is_click_function:
+            _function = function.callback
+            if asyncio.iscoroutinefunction(_function):
+                raise ValueError(
+                    "Combining click functions and coroutines is currently not supported!"
+                    " Consider using a regular function, which will be threaded by default."
+                )
             with click.Context(
                 function, info_name=self.matcher.pattern.strip("^").split(" (.*)?")[0]
             ) as ctx:
                 # Get click help string and do some extra formatting
                 self.docstring = function.get_help(ctx).replace("\n", f"\n{spaces(8)}")
-            _function = function.callback
         else:
-            self.docstring = function.__doc__
             _function = function
+            self.docstring = function.__doc__
 
         self.name = _function.__qualname__
 
         argspec = list(inspect.signature(_function).parameters.keys())
-        print(self.name, argspec)
         if not argspec[:2] == ["self", "message"]:
             raise TypeError(
                 "Any listener function should at least have the positional arguments"
