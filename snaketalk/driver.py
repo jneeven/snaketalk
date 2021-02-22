@@ -9,6 +9,7 @@ import mattermostdriver
 
 from snaketalk.message import Message
 from snaketalk.scheduler import default_scheduler
+from snaketalk.webhook_server import WebhookServer
 
 
 class ThreadPool(object):
@@ -20,6 +21,7 @@ class ThreadPool(object):
         - num_workers: int, how many threads to run simultaneously.
         """
         self.num_workers = num_workers
+        self.webhook_server = WebhookServer()
         self.alive = False
         self._queue = queue.Queue()
         self._busy_workers = queue.Queue()
@@ -74,6 +76,13 @@ class ThreadPool(object):
                 default_scheduler.run_pending()
 
         self.add_task(run_pending)
+
+    def start_webhook_server_thread(self):
+        def start_server():
+            logging.info("Webhook server thread started.")
+            while self.alive:
+                self.webhook_server.start()
+        self.add_task(start_server)
 
 
 class Driver(mattermostdriver.Driver):
