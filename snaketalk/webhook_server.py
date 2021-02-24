@@ -61,13 +61,10 @@ class WebhookServer:
             self.app_runner, webhook_host_ip, self.settings.WEBHOOK_HOST_PORT
         )
         await site.start()
+        await asyncio.Event().wait()
 
     def start(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        task = loop.create_task(self.runner())
-        loop.run_until_complete(task)
-        loop.run_forever()
+        asyncio.run(self.runner())
 
     def stop(self):
         self.app_runner.cleanup()
