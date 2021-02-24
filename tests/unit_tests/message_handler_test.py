@@ -64,17 +64,17 @@ class TestMessageHandler:
         # Test that all listeners from the individual plugins are now registered on
         # the handler
         for plugin in handler.plugins:
-            for pattern, listener in plugin.listeners.items():
-                assert listener in handler.listeners[pattern]
+            for pattern, listener in plugin.message_listeners.items():
+                assert listener in handler.message_listeners[pattern]
 
         # And vice versa, check that any listeners on the handler come from the
         # registered plugins
-        for pattern, listeners in handler.listeners.items():
+        for pattern, listeners in handler.message_listeners.items():
             for listener in listeners:
                 assert any(
                     [
-                        pattern in plugin.listeners
-                        and listener in plugin.listeners[pattern]
+                        pattern in plugin.message_listeners
+                        and listener in plugin.message_listeners[pattern]
                         for plugin in handler.plugins
                     ]
                 )

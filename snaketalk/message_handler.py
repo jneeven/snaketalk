@@ -27,11 +27,13 @@ class MessageHandler(object):
 
         self._name_matcher = re.compile(rf"^@?{self.driver.username}\:?\s?")
 
-        # Collect the listeners from all plugins
-        self.listeners = defaultdict(list)
+        # Collect the message listeners from all plugins
+        self.message_listeners = defaultdict(list)
         for plugin in self.plugins:
-            for matcher, functions in plugin.listeners.items():
-                self.listeners[matcher].extend(functions)
+            for matcher, functions in plugin.message_listeners.items():
+                self.message_listeners[matcher].extend(functions)
+
+        # TODO: also collect the webhook listeners.
 
     def start(self):
         # This is blocking, will loop forever
@@ -69,7 +71,7 @@ class MessageHandler(object):
         # Find all the listeners that match this message, and have their plugins handle
         # the rest.
         tasks = []
-        for matcher, functions in self.listeners.items():
+        for matcher, functions in self.message_listeners.items():
             match = matcher.match(message.text)
             if match:
                 groups = list([group for group in match.groups() if group != ""])
@@ -84,3 +86,7 @@ class MessageHandler(object):
                     )
         # Execute the callbacks in parallel
         asyncio.gather(*tasks)
+
+    async def _handle_webhook(self, data):
+        # TODO: implement code similar to _handle_post, but with webhook listeners.
+        pass

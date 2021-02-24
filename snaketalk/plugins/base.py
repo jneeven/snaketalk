@@ -7,7 +7,7 @@ from collections import defaultdict
 from typing import Dict, Sequence
 
 from snaketalk.driver import Driver
-from snaketalk.function import Function, listen_to
+from snaketalk.function import MessageFunction, listen_to
 from snaketalk.message import Message
 
 
@@ -22,7 +22,9 @@ class Plugin(ABC):
 
     def __init__(self):
         self.driver = None
-        self.listeners: Dict[re.Pattern, Sequence[Function]] = defaultdict(list)
+        self.message_listeners: Dict[
+            re.Pattern, Sequence[MessageFunction]
+        ] = defaultdict(list)
 
     def initialize(self, driver: Driver):
         self.driver = driver
@@ -30,11 +32,11 @@ class Plugin(ABC):
         # Register listeners for any listener functions we might have
         for attribute in dir(self):
             attribute = getattr(self, attribute)
-            if isinstance(attribute, Function):
+            if isinstance(attribute, MessageFunction):
                 # Register this function and any potential siblings
                 for function in [attribute] + attribute.siblings:
                     function.plugin = self
-                    self.listeners[function.matcher].append(function)
+                    self.message_listeners[function.matcher].append(function)
 
         return self
 
@@ -55,7 +57,7 @@ class Plugin(ABC):
         return self
 
     async def call_function(
-        self, function: Function, message: Message, groups: Sequence[str]
+        self, function: MessageFunction, message: Message, groups: Sequence[str]
     ):
         if function.is_coroutine:
             await function(message, *groups)  # type:ignore
@@ -67,7 +69,7 @@ class Plugin(ABC):
     def get_help_string(self):
         string = f"Plugin {self.__class__.__name__} has the following functions:\n"
         string += "----\n"
-        for functions in self.listeners.values():
+        for functions in self.message_listeners.values():
             for function in functions:
                 string += f"- {function.get_help_string()}"
             string += "----\n"

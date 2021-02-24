@@ -4,7 +4,7 @@ from unittest import mock
 import click
 import pytest
 
-from snaketalk import ExamplePlugin, Function, listen_to
+from snaketalk import ExamplePlugin, MessageFunction, listen_to
 from snaketalk.driver import Driver
 
 from .message_handler_test import create_message
@@ -15,7 +15,7 @@ def example_listener(self, message):
     pass
 
 
-class TestFunction:
+class TestMessageFunction:
     def test_listen_to(self):
         pattern = "test_regexp"
 
@@ -24,7 +24,7 @@ class TestFunction:
 
         wrapped_function = listen_to(pattern, re.IGNORECASE)(original_function)
 
-        assert isinstance(wrapped_function, Function)
+        assert isinstance(wrapped_function, MessageFunction)
         # Verify that both the regexp and its flags are correct
         assert wrapped_function.matcher == re.compile(pattern, re.IGNORECASE)
         assert wrapped_function.function == original_function
@@ -35,20 +35,20 @@ class TestFunction:
             pass
 
         with pytest.raises(TypeError):
-            Function(function1, matcher=re.compile(""))
+            MessageFunction(function1, matcher=re.compile(""))
 
         # This function has the correct arguments, but not in the correct order
         def function2(self, arg, message):
             pass
 
         with pytest.raises(TypeError):
-            Function(function2, matcher=re.compile(""))
+            MessageFunction(function2, matcher=re.compile(""))
 
         # This function should work just fine
         def function3(self, message):
             pass
 
-        Function(function3, matcher=re.compile(""))
+        MessageFunction(function3, matcher=re.compile(""))
 
     def test_is_coroutine(self):
         @listen_to("")
@@ -78,12 +78,12 @@ class TestFunction:
         def wrapped(self, message, arg1, arg2):
             return arg1, arg2
 
-        f = Function(wrapped, matcher=re.compile(""))
+        f = MessageFunction(wrapped, matcher=re.compile(""))
         # Verify that the arguments are passed and returned correctly
         assert f(create_message(), "yes", "no") == ("yes", "no")
 
         # Verify that wrapping an already wrapped function also works
-        new_f = Function(f, matcher=re.compile("a"))
+        new_f = MessageFunction(f, matcher=re.compile("a"))
         assert new_f.function is wrapped
         assert new_f.matcher.pattern == "a"
         assert f in new_f.siblings
@@ -96,7 +96,7 @@ class TestFunction:
         def wrapped(self, message, arg1, arg2, flag):
             return arg1, arg2, flag
 
-        f = Function(wrapped, matcher=re.compile(""))
+        f = MessageFunction(wrapped, matcher=re.compile(""))
         # Verify that the arguments are passed and returned correctly
         assert f(create_message(), "--arg1=yes --arg2=no") == ("yes", "no", False)
         assert f(create_message(), "-f --arg2=no") == ("nothing", "no", True)

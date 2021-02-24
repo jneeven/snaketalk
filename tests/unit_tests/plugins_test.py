@@ -44,20 +44,20 @@ class TestPlugin:
     def test_initialize(self):
         p = FakePlugin().initialize(Driver())
         # Test whether the function was registered properly
-        assert p.listeners[re.compile("pattern")] == [
+        assert p.message_listeners[re.compile("pattern")] == [
             FakePlugin.my_function,
         ]
 
         # This function should be registered twice, once for each listener
-        assert len(p.listeners[re.compile("async_pattern")]) == 1
+        assert len(p.message_listeners[re.compile("async_pattern")]) == 1
         assert (
-            p.listeners[re.compile("async_pattern")][0].function
+            p.message_listeners[re.compile("async_pattern")][0].function
             == FakePlugin.my_async_function.function
         )
 
-        assert len(p.listeners[re.compile("another_async_pattern")]) == 1
+        assert len(p.message_listeners[re.compile("another_async_pattern")]) == 1
         assert (
-            p.listeners[re.compile("another_async_pattern")][0].function
+            p.message_listeners[re.compile("another_async_pattern")][0].function
             == FakePlugin.my_async_function.function
         )
 
