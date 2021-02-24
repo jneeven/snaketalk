@@ -82,6 +82,7 @@ class ThreadPool(object):
             logging.info("Webhook server thread started.")
             while self.alive:
                 self.webhook_server.start()
+
         self.add_task(start_server)
 
 
