@@ -1,5 +1,6 @@
 import logging
 import sys
+from queue import Queue
 from typing import Sequence
 
 from snaketalk.driver import Driver
@@ -55,11 +56,13 @@ class Bot:
             self.driver.threadpool.start_scheduler_thread(
                 self.settings.SCHEDULER_PERIOD
             )
+            webhook_queue = None
             if self.settings.WEBHOOK_HOST_ENABLED:
-                self.driver.threadpool.start_webhook_server_thread()
+                webhook_queue = Queue()
+                self.driver.threadpool.start_webhook_server_thread(webhook_queue)
             for plugin in self.plugins:
                 plugin.on_start()
-            self.event_handler.start()
+            self.event_handler.start(webhook_queue)
 
         except KeyboardInterrupt as e:
             self.stop()

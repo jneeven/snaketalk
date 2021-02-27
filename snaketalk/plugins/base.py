@@ -7,7 +7,7 @@ from collections import defaultdict
 from typing import Dict, Sequence
 
 from snaketalk.driver import Driver
-from snaketalk.function import Function, MessageFunction, listen_to
+from snaketalk.function import Function, MessageFunction, WebHookFunction, listen_to
 from snaketalk.settings import Settings
 from snaketalk.wrappers import EventWrapper, Message
 
@@ -27,6 +27,9 @@ class Plugin(ABC):
         self.message_listeners: Dict[
             re.Pattern, Sequence[MessageFunction]
         ] = defaultdict(list)
+        self.webhook_listeners: Dict[
+            re.Pattern, Sequence[WebHookFunction]
+        ] = defaultdict(list)
 
     def initialize(self, driver: Driver, settings: Settings = Settings()):
         self.driver = driver
@@ -35,11 +38,19 @@ class Plugin(ABC):
         # Register listeners for any listener functions we might have
         for attribute in dir(self):
             attribute = getattr(self, attribute)
-            if isinstance(attribute, MessageFunction):
+            if isinstance(attribute, Function):
                 # Register this function and any potential siblings
                 for function in [attribute] + attribute.siblings:
                     function.plugin = self
-                    self.message_listeners[function.matcher].append(function)
+                    if isinstance(function, MessageFunction):
+                        self.message_listeners[function.matcher].append(function)
+                    elif isinstance(function, WebHookFunction):
+                        self.webhook_listeners[function.matcher].append(function)
+                    else:
+                        raise TypeError(
+                            f"{self.__class__.__name__} has a function of unsupported"
+                            f" type {type(function)}."
+                        )
 
         return self
 

@@ -206,6 +206,8 @@ class WebHookFunction(Function):
         if isinstance(self.function, click.Command):
             raise TypeError()  # TODO: Explain why webhook functions can't be click commands
 
+        # TODO: check argspec
+
     def __call__(self, event: WebHookEvent):
         # TODO: implement any necessary logic here
         return self.function(self.plugin, event)
