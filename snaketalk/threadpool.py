@@ -6,6 +6,7 @@ from queue import Queue
 
 from snaketalk.scheduler import default_scheduler
 from snaketalk.webhook_server import WebHookServer
+from snaketalk.wrappers import WebHookEvent
 
 
 class ThreadPool(object):
@@ -17,7 +18,6 @@ class ThreadPool(object):
         - num_workers: int, how many threads to run simultaneously.
         """
         self.num_workers = num_workers
-        self.webhook_server = WebHookServer()
         self.alive = False
         self._queue = Queue()
         self._busy_workers = Queue()
@@ -73,10 +73,10 @@ class ThreadPool(object):
 
         self.add_task(run_pending)
 
-    def start_webhook_server_thread(self, queue: Queue):
+    def start_webhook_server_thread(self, webhook_server: WebHookServer):
         async def start_server():
             logging.info("Webhook server thread started.")
-            await self.webhook_server.start(queue)
+            await webhook_server.start()
             while self.alive:
                 # We just use this to keep the loop running in a non-blocking way
                 await asyncio.sleep(0.001)

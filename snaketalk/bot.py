@@ -1,12 +1,13 @@
+import asyncio
 import logging
 import sys
-from queue import Queue
 from typing import Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.event_handler import EventHandler
 from snaketalk.plugins import ExamplePlugin, Plugin, WebhookExample
 from snaketalk.settings import Settings
+from snaketalk.webhook_server import WebHookServer
 
 
 class Bot:
@@ -42,11 +43,24 @@ class Bot:
         self.event_handler = EventHandler(
             self.driver, settings=self.settings, plugins=self.plugins
         )
+        self.webhook_server = None
+
+        if self.settings.WEBHOOK_HOST_ENABLED:
+            self._initialize_webhook_server()
 
     def _initialize_plugins(self, plugins: Sequence[Plugin]):
         for plugin in plugins:
             plugin.initialize(self.driver, self.settings)
         return plugins
+
+    def _initialize_webhook_server(self):
+        self.webhook_server = WebHookServer()
+        self.driver.response_queue = self.webhook_server.response_queue
+        # Schedule the queue loop to the current event loop so that it starts together
+        # with self.init_websocket.
+        asyncio.get_event_loop().create_task(
+            self.event_handler._check_queue_loop(self.webhook_server.event_queue)
+        )
 
     def run(self):
         logging.info(f"Starting bot {self.__class__.__name__}.")
@@ -56,13 +70,15 @@ class Bot:
             self.driver.threadpool.start_scheduler_thread(
                 self.settings.SCHEDULER_PERIOD
             )
-            webhook_queue = None
+            # Start the webhook server on a separate thread if necessary
             if self.settings.WEBHOOK_HOST_ENABLED:
-                webhook_queue = Queue()
-                self.driver.threadpool.start_webhook_server_thread(webhook_queue)
+                self.driver.threadpool.start_webhook_server_thread(self.webhook_server)
+
             for plugin in self.plugins:
                 plugin.on_start()
-            self.event_handler.start(webhook_queue)
+
+            # Start listening for events
+            self.event_handler.start()
 
         except KeyboardInterrupt as e:
             self.stop()

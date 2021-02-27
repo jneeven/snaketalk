@@ -1,15 +1,15 @@
 import asyncio
 import json
 import logging
+import queue
 import re
 from collections import defaultdict
-from queue import Empty, Queue
-from typing import Dict, Optional, Sequence
+from typing import Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.plugins import Plugin
 from snaketalk.settings import Settings
-from snaketalk.wrappers import ActionEvent, Message, WebHookEvent
+from snaketalk.wrappers import Message, WebHookEvent
 
 
 class EventHandler(object):
@@ -38,31 +38,9 @@ class EventHandler(object):
             for matcher, functions in plugin.webhook_listeners.items():
                 self.webhook_listeners[matcher].extend(functions)
 
-        print(self.webhook_listeners)
-
-        self.webhook_queue = None
-
-    def start(self, webhook_queue: Optional[Queue] = None):
-        # If webhooks are enabled, we need to start a webhook queue listener
-        if self.settings.WEBHOOK_HOST_ENABLED:
-            self.webhook_queue = webhook_queue
-
-            async def check_webhook_queue():
-                logging.info("EventHandler WebHook queue listener started.")
-                while True:
-                    try:
-                        webhook_id, data = self.webhook_queue.get_nowait()
-                        await self._handle_webhook(webhook_id, data)
-                    except Empty:
-                        pass
-                    await asyncio.sleep(0.0001)
-
-            # Schedule the listener to the current event loop so that it starts together
-            # with driver.init_websocket
-            asyncio.get_event_loop().create_task(check_webhook_queue())
-
+    def start(self):
         # This is blocking, will loop forever
-        self.driver.init_websocket(self.handle_event)
+        self.driver.init_websocket(self._handle_event)
 
     def _should_ignore(self, message: Message):
         # Ignore message from senders specified in settings, and maybe from ourself
@@ -73,7 +51,17 @@ class EventHandler(object):
             else False
         ) or (self.ignore_own_messages and message.sender_name == self.driver.username)
 
-    async def handle_event(self, data):
+    async def _check_queue_loop(self, webhook_queue: queue.Queue):
+        logging.info("EventHandlerWebHook queue listener started.")
+        while True:
+            try:
+                webhook_id, data = webhook_queue.get_nowait()
+                await self._handle_webhook(webhook_id, data)
+            except queue.Empty:
+                pass
+            await asyncio.sleep(0.0001)
+
+    async def _handle_event(self, data):
         post = json.loads(data)
         event_action = post.get("event")
         if event_action == "posted":
@@ -112,12 +100,7 @@ class EventHandler(object):
         # Execute the callbacks in parallel
         asyncio.gather(*tasks)
 
-    async def _handle_webhook(self, webhook_id: str, data: Dict):
-        if "trigger_id" in data:
-            event = ActionEvent(data)
-        else:
-            event = WebHookEvent(data)
-
+    async def _handle_webhook(self, webhook_id: str, event: WebHookEvent):
         # Find all the listeners that match this webhook id, and have their plugins
         # handle the rest.
         tasks = []

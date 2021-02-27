@@ -104,9 +104,9 @@ class TestEventHandler:
     def test_handle_event(self, handle_post):
         handler = EventHandler(Driver(), Settings(), plugins=[])
         # This event should trigger _handle_post
-        asyncio.run(handler.handle_event(json.dumps(create_message().body)))
+        asyncio.run(handler._handle_event(json.dumps(create_message().body)))
         # This event should not
-        asyncio.run(handler.handle_event(json.dumps({"event": "some_other_event"})))
+        asyncio.run(handler._handle_event(json.dumps({"event": "some_other_event"})))
 
         handle_post.assert_called_once_with(create_message().body)
 

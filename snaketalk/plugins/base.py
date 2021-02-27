@@ -90,6 +90,7 @@ class Plugin(ABC):
             for function in functions:
                 string += f"- {function.get_help_string()}"
             string += "----\n"
+        # TODO: add webhooks?
 
         return string
 

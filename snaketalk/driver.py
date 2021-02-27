@@ -1,3 +1,4 @@
+import queue
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
@@ -20,6 +21,8 @@ class Driver(mattermostdriver.Driver):
         """
         super().__init__(*args, **kwargs)
         self.threadpool = ThreadPool(num_workers=num_threads)
+        # Queue to communicate with the WebHookServer
+        self.response_queue: Optional[queue.Queue] = None
 
     def login(self, *args, **kwargs):
         super().login(*args, **kwargs)
