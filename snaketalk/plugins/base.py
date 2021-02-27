@@ -16,7 +16,7 @@ class Plugin(ABC):
     """A Plugin is a self-contained class that defines what functions should be executed
     given different inputs.
 
-    It will be called by the MessageHandler whenever one of its listeners is triggered,
+    It will be called by the EventHandler whenever one of its listeners is triggered,
     but execution of the corresponding function is handled by the plugin itself. This
     way, you can implement multithreading or multiprocessing as desired.
     """

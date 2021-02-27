@@ -3,7 +3,7 @@ import sys
 from typing import Sequence
 
 from snaketalk.driver import Driver
-from snaketalk.message_handler import MessageHandler
+from snaketalk.event_handler import EventHandler
 from snaketalk.plugins import ExamplePlugin, Plugin, WebhookExample
 from snaketalk.settings import Settings
 
@@ -38,7 +38,7 @@ class Bot:
         )
         self.driver.login()
         self.plugins = self._initialize_plugins(plugins)
-        self.message_handler = MessageHandler(
+        self.event_handler = EventHandler(
             self.driver, settings=self.settings, plugins=self.plugins
         )
 
@@ -59,7 +59,7 @@ class Bot:
                 self.driver.threadpool.start_webhook_server_thread()
             for plugin in self.plugins:
                 plugin.on_start()
-            self.message_handler.start()
+            self.event_handler.start()
 
         except KeyboardInterrupt as e:
             self.stop()

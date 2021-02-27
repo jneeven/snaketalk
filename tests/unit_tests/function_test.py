@@ -7,7 +7,7 @@ import pytest
 from snaketalk import ExamplePlugin, MessageFunction, Settings, listen_to
 from snaketalk.driver import Driver
 
-from .message_handler_test import create_message
+from .event_handler_test import create_message
 
 
 def example_listener(self, message):

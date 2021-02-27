@@ -7,7 +7,7 @@ import click
 from snaketalk import Plugin, listen_to
 from snaketalk.driver import Driver
 
-from .message_handler_test import create_message
+from .event_handler_test import create_message
 
 
 # Used in the plugin tests below

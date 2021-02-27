@@ -4,7 +4,7 @@ from unittest import mock
 
 from snaketalk import ExamplePlugin, Message, Settings
 from snaketalk.driver import Driver
-from snaketalk.message_handler import MessageHandler
+from snaketalk.event_handler import EventHandler
 
 
 def create_message(
@@ -53,10 +53,10 @@ def create_message(
     )
 
 
-class TestMessageHandler:
+class TestEventHandler:
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
     def test_init(self):
-        handler = MessageHandler(Driver(), Settings(), plugins=[ExamplePlugin()])
+        handler = EventHandler(Driver(), Settings(), plugins=[ExamplePlugin()])
         # Test the name matcher regexp
         assert handler._name_matcher.match("@my_username are you there?")
         assert not handler._name_matcher.match("@other_username are you there?")
@@ -81,7 +81,7 @@ class TestMessageHandler:
 
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
     def test_should_ignore(self):
-        handler = MessageHandler(
+        handler = EventHandler(
             Driver(), Settings(IGNORE_USERS=["ignore_me"]), plugins=[]
         )
         # We shouldn't ignore a message from betty, since she is not listed
@@ -92,7 +92,7 @@ class TestMessageHandler:
         assert handler._should_ignore(create_message(sender_name="my_username"))
 
         # But shouldn't do so if this is explicitly requested
-        handler = MessageHandler(
+        handler = EventHandler(
             Driver(),
             Settings(IGNORE_USERS=["ignore_me"]),
             plugins=[],
@@ -100,9 +100,9 @@ class TestMessageHandler:
         )
         assert not handler._should_ignore(create_message(sender_name="my_username"))
 
-    @mock.patch("snaketalk.message_handler.MessageHandler._handle_post")
+    @mock.patch("snaketalk.event_handler.EventHandler._handle_post")
     def test_handle_event(self, handle_post):
-        handler = MessageHandler(Driver(), Settings(), plugins=[])
+        handler = EventHandler(Driver(), Settings(), plugins=[])
         # This event should trigger _handle_post
         asyncio.run(handler.handle_event(json.dumps(create_message().body)))
         # This event should not
@@ -116,7 +116,7 @@ class TestMessageHandler:
         driver = Driver()
         plugin = ExamplePlugin().initialize(driver)
         # Construct a handler with it
-        handler = MessageHandler(driver, Settings(), plugins=[plugin])
+        handler = EventHandler(driver, Settings(), plugins=[plugin])
 
         # Mock the call_function of the plugin so we can make some asserts
         async def mock_call_function(function, message, groups):

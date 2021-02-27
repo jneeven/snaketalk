@@ -10,7 +10,7 @@ from snaketalk.settings import Settings
 from snaketalk.wrappers import Message
 
 
-class MessageHandler(object):
+class EventHandler(object):
     def __init__(
         self,
         driver: Driver,
@@ -18,8 +18,8 @@ class MessageHandler(object):
         plugins: Sequence[Plugin],
         ignore_own_messages=True,
     ):
-        """The MessageHandler class takes care of the connection to mattermost and
-        calling the appropriate response function to each event."""
+        """The EventHandler class takes care of the connection to mattermost and calling
+        the appropriate response function to each event."""
         self.driver = driver
         self.settings = settings
         self.ignore_own_messages = ignore_own_messages
