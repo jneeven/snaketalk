@@ -4,7 +4,7 @@ import logging
 import re
 from abc import ABC
 from collections import defaultdict
-from typing import Dict, Sequence
+from typing import Dict, Optional, Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.function import Function, MessageFunction, WebHookFunction, listen_to
@@ -71,7 +71,10 @@ class Plugin(ABC):
         return self
 
     async def call_function(
-        self, function: Function, event: EventWrapper, groups: Sequence[str]
+        self,
+        function: Function,
+        event: EventWrapper,
+        groups: Optional[Sequence[str]] = [],
     ):
         if function.is_coroutine:
             await function(event, *groups)  # type:ignore

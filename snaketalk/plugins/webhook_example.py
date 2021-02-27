@@ -1,7 +1,8 @@
 from snaketalk.driver import Driver
-from snaketalk.plugins.base import Plugin, listen_to
+from snaketalk.function import listen_to, listen_webhook
+from snaketalk.plugins.base import Plugin
 from snaketalk.settings import Settings
-from snaketalk.wrappers import Message
+from snaketalk.wrappers import ActionEvent, Message
 
 
 class WebhookExample(Plugin):
@@ -11,17 +12,12 @@ class WebhookExample(Plugin):
         super().initialize(driver, settings)
         self.webhook_host_url = self.settings.WEBHOOK_HOST_URL
         self.webhook_host_port = self.settings.WEBHOOK_HOST_PORT
-        self.webhook_id = self.settings.WEBHOOK_ID
-        self.webhook_url = self._make_webhook_url()
 
-    def _make_webhook_url(self):
-        mattermost_url = self.settings.MATTERMOST_URL
-        mattermost_port = self.settings.MATTERMOST_PORT
-        webhook_url = (
-            f"http://{mattermost_url}:{mattermost_port}/hooks/{self.webhook_id}"
-        )
-
-        return webhook_url
+    @listen_webhook("ping")
+    @listen_webhook("pong")
+    async def action_listener(self, event: ActionEvent):
+        # TODO: send a json response to the original request instead, if possible.
+        self.driver.create_post(event.channel_id, event.context["text"])
 
     @listen_to("!button", direct_only=False)
     async def webhook_button(self, message: Message):
@@ -35,23 +31,24 @@ class WebhookExample(Plugin):
                         "text": "Take your pick..",
                         "actions": [
                             {
-                                "id": "Ping",
+                                "id": "sendPing",
                                 "name": "Ping",
                                 "integration": {
                                     "url": f"{self.webhook_host_url}:{self.webhook_host_port}/"
-                                    "actions/ping",
-                                    "context": {"data": "ping"},
+                                    "hooks/ping",
+                                    "context": {
+                                        "text": "The ping webhook works! :tada:",
+                                    },
                                 },
                             },
                             {
-                                "id": "sendWebhook",
-                                "name": "Send a webhook",
+                                "id": "sendPong",
+                                "name": "Pong",
                                 "integration": {
                                     "url": f"{self.webhook_host_url}:{self.webhook_host_port}/"
-                                    f"hooks/{self.webhook_id}",
+                                    "hooks/pong",
                                     "context": {
-                                        "text": "The webhook works! :tada:",
-                                        "webhook_url": self.webhook_url,
+                                        "text": "The pong webhook works! :tada:",
                                     },
                                 },
                             },

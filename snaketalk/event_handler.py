@@ -38,6 +38,8 @@ class EventHandler(object):
             for matcher, functions in plugin.webhook_listeners.items():
                 self.webhook_listeners[matcher].extend(functions)
 
+        print(self.webhook_listeners)
+
         self.webhook_queue = None
 
     def start(self, webhook_queue: Optional[Queue] = None):
