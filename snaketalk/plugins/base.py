@@ -9,6 +9,7 @@ from typing import Dict, Sequence
 from snaketalk.driver import Driver
 from snaketalk.function import MessageFunction, listen_to
 from snaketalk.message import Message
+from snaketalk.settings import Settings
 
 
 class Plugin(ABC):
@@ -22,12 +23,14 @@ class Plugin(ABC):
 
     def __init__(self):
         self.driver = None
+        self.settings = None
         self.message_listeners: Dict[
             re.Pattern, Sequence[MessageFunction]
         ] = defaultdict(list)
 
-    def initialize(self, driver: Driver):
+    def initialize(self, driver: Driver, settings: Settings = Settings()):
         self.driver = driver
+        self.settings = settings
 
         # Register listeners for any listener functions we might have
         for attribute in dir(self):

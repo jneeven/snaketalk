@@ -44,7 +44,7 @@ class Bot:
 
     def _initialize_plugins(self, plugins: Sequence[Plugin]):
         for plugin in plugins:
-            plugin.initialize(self.driver)
+            plugin.initialize(self.driver, self.settings)
         return plugins
 
     def run(self):

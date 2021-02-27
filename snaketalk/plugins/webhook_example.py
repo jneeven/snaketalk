@@ -1,3 +1,4 @@
+from snaketalk.driver import Driver
 from snaketalk.message import Message
 from snaketalk.plugins.base import Plugin, listen_to
 from snaketalk.settings import Settings
@@ -6,16 +7,16 @@ from snaketalk.settings import Settings
 class WebhookExample(Plugin):
     """Webhook plugin with examples of webhook server functionality."""
 
-    def __init__(self):
-        super().__init__()
-        self.webhook_host_url = Settings().WEBHOOK_HOST_URL
-        self.webhook_host_port = Settings().WEBHOOK_HOST_PORT
-        self.webhook_id = Settings().WEBHOOK_ID
+    def initialize(self, driver: Driver, settings: Settings):
+        super().initialize(driver, settings)
+        self.webhook_host_url = self.settings.WEBHOOK_HOST_URL
+        self.webhook_host_port = self.settings.WEBHOOK_HOST_PORT
+        self.webhook_id = self.settings.WEBHOOK_ID
         self.webhook_url = self._make_webhook_url()
 
     def _make_webhook_url(self):
-        mattermost_url = Settings().MATTERMOST_URL
-        mattermost_port = Settings().MATTERMOST_PORT
+        mattermost_url = self.settings.MATTERMOST_URL
+        mattermost_port = self.settings.MATTERMOST_PORT
         webhook_url = (
             f"http://{mattermost_url}:{mattermost_port}/hooks/{self.webhook_id}"
         )

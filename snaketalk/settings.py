@@ -18,7 +18,7 @@ class Settings:
     WEBHOOK_HOST_ENABLED: bool = True
     WEBHOOK_HOST_URL: str = "http://127.0.0.1"
     WEBHOOK_HOST_PORT: int = 8579
-    WEBHOOK_ID: str = "webhook_id"
+    WEBHOOK_ID: str = "eauegoqk4ibxigfybqrsfmt48r"
     DEBUG: bool = False
     IGNORE_USERS: Sequence[str] = field(default_factory=list)
     # How often to check whether any scheduled jobs need to be run, default every second

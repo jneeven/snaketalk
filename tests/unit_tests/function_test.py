@@ -4,7 +4,7 @@ from unittest import mock
 import click
 import pytest
 
-from snaketalk import ExamplePlugin, MessageFunction, listen_to
+from snaketalk import ExamplePlugin, MessageFunction, Settings, listen_to
 from snaketalk.driver import Driver
 
 from .message_handler_test import create_message
@@ -106,7 +106,7 @@ class TestMessageFunction:
             assert "no such option: --nonexistent-arg" in response
             assert f.docstring in response
 
-        f.plugin = ExamplePlugin().initialize(Driver())
+        f.plugin = ExamplePlugin().initialize(Driver(), Settings())
         with mock.patch.object(
             f.plugin.driver, "reply_to", wraps=mocked_reply
         ) as mock_function:
