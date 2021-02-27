@@ -1,7 +1,7 @@
 from snaketalk.driver import Driver
-from snaketalk.message import Message
 from snaketalk.plugins.base import Plugin, listen_to
 from snaketalk.settings import Settings
+from snaketalk.wrappers import Message
 
 
 class WebhookExample(Plugin):

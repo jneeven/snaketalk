@@ -8,9 +8,8 @@ from typing import Callable, Optional, Sequence
 
 import click
 
-from snaketalk.message import Message
 from snaketalk.utils import completed_future, spaces
-from snaketalk.webhook_event import WebHookEvent
+from snaketalk.wrappers import Message, WebHookEvent
 
 
 class Function(ABC):

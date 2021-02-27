@@ -3,8 +3,8 @@ from typing import Dict, List, Optional, Sequence, Union
 
 import mattermostdriver
 
-from snaketalk.message import Message
 from snaketalk.threadpool import ThreadPool
+from snaketalk.wrappers import Message
 
 
 class Driver(mattermostdriver.Driver):

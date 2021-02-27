@@ -8,8 +8,8 @@ from typing import Dict, Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.function import MessageFunction, listen_to
-from snaketalk.message import Message
 from snaketalk.settings import Settings
+from snaketalk.wrappers import Message
 
 
 class Plugin(ABC):

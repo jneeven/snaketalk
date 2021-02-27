@@ -5,9 +5,9 @@ from collections import defaultdict
 from typing import Sequence
 
 from snaketalk.driver import Driver
-from snaketalk.message import Message
 from snaketalk.plugins import Plugin
 from snaketalk.settings import Settings
+from snaketalk.wrappers import Message
 
 
 class MessageHandler(object):

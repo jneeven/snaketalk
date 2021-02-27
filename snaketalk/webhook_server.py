@@ -37,6 +37,7 @@ async def process_webhook(request: web.Request):
 @handle_json_error
 async def process_action(request: web.Request):
     post = await request.json()
+    print(post)
     data = post["context"]["data"]
     if data == "ping":
         return web.json_response(
