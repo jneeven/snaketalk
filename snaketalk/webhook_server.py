@@ -54,17 +54,13 @@ class WebhookServer:
         self.app.add_routes(routes)
         self.settings = Settings()
 
-    async def runner(self):
+    async def start(self):
         webhook_host_ip = self.settings.WEBHOOK_HOST_URL.replace("http://", "")
         await self.app_runner.setup()
         site = web.TCPSite(
             self.app_runner, webhook_host_ip, self.settings.WEBHOOK_HOST_PORT
         )
         await site.start()
-        await asyncio.Event().wait()
-
-    def start(self):
-        asyncio.run(self.runner())
 
     def stop(self):
         self.app_runner.cleanup()

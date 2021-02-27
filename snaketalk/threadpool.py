@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import queue
 import threading
@@ -73,9 +74,11 @@ class ThreadPool(object):
         self.add_task(run_pending)
 
     def start_webhook_server_thread(self):
-        def start_server():
+        async def start_server():
             logging.info("Webhook server thread started.")
+            await self.webhook_server.start()
             while self.alive:
-                self.webhook_server.start()
+                # We just use this to keep the loop running in a non-blocking way
+                await asyncio.sleep(0.001)
 
-        self.add_task(start_server)
+        self.add_task(asyncio.run, start_server())
