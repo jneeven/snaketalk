@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Sequence, Union
 import mattermostdriver
 
 from snaketalk.threadpool import ThreadPool
-from snaketalk.wrappers import Message
+from snaketalk.wrappers import Message, WebHookEvent
 
 
 class Driver(mattermostdriver.Driver):
@@ -129,6 +129,11 @@ class Driver(mattermostdriver.Driver):
             file_paths=file_paths,
             props=props,
         )
+
+    def respond_to_web(self, event: WebHookEvent, response):
+        """Send a web response to the given WebHookEvent."""
+        self.response_queue.put((event.request_id, response))
+        event.responded = True
 
     def upload_files(
         self, file_paths: Sequence[Union[str, Path]], channel_id: str

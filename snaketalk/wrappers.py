@@ -68,7 +68,21 @@ class Message(EventWrapper):
 
 
 class WebHookEvent(EventWrapper):
-    """Wrapper around an incoming webhook post request."""
+    """Wrapper around an incoming webhook post request.
+
+    Contains a unique request ID.
+    """
+
+    def __init__(
+        self,
+        *args,
+        request_id: str,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.request_id = request_id
+        # Whether a web response was already sent to this request or not.
+        self.responded = False
 
     @cached_property
     def text(self) -> str:

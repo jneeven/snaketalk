@@ -1,11 +1,19 @@
 import asyncio
-from queue import Queue
+import random
+import time
+from queue import Empty, Queue
 from typing import Optional
 
 from aiohttp import web
 
 from snaketalk.settings import Settings
 from snaketalk.wrappers import ActionEvent, WebHookEvent
+
+
+class NoResponse:
+    """Used to notify the request handler that no web response should be sent."""
+
+    pass
 
 
 def handle_json_error(func):
@@ -36,6 +44,7 @@ class WebHookServer:
         # Create queues if necessary.
         self.event_queue = event_queue or Queue()
         self.response_queue = response_queue or Queue()
+        self.response_handlers = {}
 
         # Register /hooks endpoint
         self.app.add_routes([web.post("/hooks/{webhook_id}", self.process_webhook)])
@@ -48,15 +57,50 @@ class WebHookServer:
         )
         await site.start()
 
+        # Schedule the response awaiting function to the same loop as the web server
+        asyncio.get_event_loop().create_task(self._obtain_responses_loop())
+
     def stop(self):
         self.app_runner.cleanup()
+
+    async def _obtain_responses_loop(self):
+        """Checks the response queue for incoming responses and passes them on to the
+        functions awaiting them."""
+        while True:
+            try:
+                request_id, response = self.response_queue.get_nowait()
+                try:
+                    self.response_handlers[request_id].set_result(response)
+                    del self.response_handlers[request_id]
+                except KeyError:
+                    # If this handler already received a response, we can skip this.
+                    pass
+            except Empty:
+                pass
+            await asyncio.sleep(0.0001)
 
     @handle_json_error
     async def process_webhook(self, request: web.Request):
         data = await request.json()
         webhook_id = request.match_info.get("webhook_id", "")
         if "trigger_id" in data:
-            event = ActionEvent(data)
+            # Use the trigger ID to identify this request
+            event = ActionEvent(data, request_id=data["trigger_id"])
         else:
-            event = WebHookEvent(data)
+            # Generate an ID based on the current time and a random number.
+            event = WebHookEvent(
+                data, request_id=f"{time.time()}_{random.randint(10000)}"
+            )
         self.event_queue.put((webhook_id, event))
+
+        # Register a Future object that will signal us when a response has arrived,
+        # and wait for it to complete.
+        await_response = asyncio.get_event_loop().create_future()
+        self.response_handlers[event.request_id] = await_response
+        await await_response
+
+        result = await_response.result()
+        if result is NoResponse:
+            return
+
+        return web.json_response(result)

@@ -16,8 +16,13 @@ class WebhookExample(Plugin):
     @listen_webhook("ping")
     @listen_webhook("pong")
     async def action_listener(self, event: ActionEvent):
-        # TODO: send a json response to the original request instead, if possible.
-        self.driver.create_post(event.channel_id, event.context["text"])
+        self.driver.respond_to_web(
+            event,
+            {
+                "update": {"message": event.context["text"], "props": {}},
+                "ephemeral_text": "You updated the post!",
+            },
+        )
 
     @listen_to("!button", direct_only=False)
     async def webhook_button(self, message: Message):

@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 import inspect
 import re
+import traceback
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Sequence
 
 import click
 
 from snaketalk.utils import completed_future, spaces
+from snaketalk.webhook_server import NoResponse
 from snaketalk.wrappers import Message, WebHookEvent
 
 
@@ -209,8 +211,26 @@ class WebHookFunction(Function):
         # TODO: check argspec
 
     def __call__(self, event: WebHookEvent):
-        # TODO: implement any necessary logic here
-        return self.function(self.plugin, event)
+        try:
+            result = self.function(self.plugin, event)
+        except Exception:
+            traceback.print_exc()
+            # TODO: log the error trace instead of printing it
+            result = None
+
+        # Signal the WebHookServer that it we won't be sending a response.
+        def ensure_response(*args):
+            if not event.responded:
+                self.plugin.driver.respond_to_web(event, NoResponse)
+
+        # If this is a coroutine, wrap it in a task with ensure_response as callback
+        if asyncio.iscoroutine(result):
+            result = asyncio.create_task(result)
+            result.add_done_callback(ensure_response)
+            return result
+
+        ensure_response()
+        return result
 
 
 def listen_webhook(
