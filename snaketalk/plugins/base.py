@@ -7,9 +7,9 @@ from collections import defaultdict
 from typing import Dict, Sequence
 
 from snaketalk.driver import Driver
-from snaketalk.function import MessageFunction, listen_to
+from snaketalk.function import Function, MessageFunction, listen_to
 from snaketalk.settings import Settings
-from snaketalk.wrappers import Message
+from snaketalk.wrappers import EventWrapper, Message
 
 
 class Plugin(ABC):
@@ -60,14 +60,14 @@ class Plugin(ABC):
         return self
 
     async def call_function(
-        self, function: MessageFunction, message: Message, groups: Sequence[str]
+        self, function: Function, event: EventWrapper, groups: Sequence[str]
     ):
         if function.is_coroutine:
-            await function(message, *groups)  # type:ignore
+            await function(event, *groups)  # type:ignore
         else:
             # By default, we use the global threadpool of the driver, but we could use
             # a plugin-specific thread or process pool if we wanted.
-            self.driver.threadpool.add_task(function, message, *groups)
+            self.driver.threadpool.add_task(function, event, *groups)
 
     def get_help_string(self):
         string = f"Plugin {self.__class__.__name__} has the following functions:\n"
