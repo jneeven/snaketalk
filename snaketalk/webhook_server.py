@@ -6,7 +6,6 @@ from typing import Optional
 
 from aiohttp import web
 
-from snaketalk.settings import Settings
 from snaketalk.wrappers import ActionEvent, WebHookEvent
 
 
