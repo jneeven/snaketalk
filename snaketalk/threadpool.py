@@ -6,7 +6,6 @@ from queue import Queue
 
 from snaketalk.scheduler import default_scheduler
 from snaketalk.webhook_server import WebHookServer
-from snaketalk.wrappers import WebHookEvent
 
 
 class ThreadPool(object):
@@ -44,10 +43,10 @@ class ThreadPool(object):
         for _ in range(self.num_workers):
             self._queue.put((self._stop_thread, tuple()))
         # Wait for each of them to finish
-        print("Stopping threadpool, waiting for threads...")
+        logging.info("Stopping threadpool, waiting for threads...")
         for thread in self._threads:
             thread.join()
-        print("Threadpool stopped.")
+        logging.info("Threadpool stopped.")
 
     def _stop_thread(self):
         """Used to stop individual threads."""
@@ -70,6 +69,7 @@ class ThreadPool(object):
             while self.alive:
                 time.sleep(trigger_period)
                 default_scheduler.run_pending()
+            logging.info("Scheduler thread stopped.")
 
         self.add_task(run_pending)
 
@@ -80,5 +80,7 @@ class ThreadPool(object):
             while self.alive:
                 # We just use this to keep the loop running in a non-blocking way
                 await asyncio.sleep(0.001)
+            await webhook_server.stop()
+            logging.info("Webhook server thread stopped.")
 
         self.add_task(asyncio.run, start_server())

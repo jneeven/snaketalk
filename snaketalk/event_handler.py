@@ -9,6 +9,7 @@ from typing import Sequence
 from snaketalk.driver import Driver
 from snaketalk.plugins import Plugin
 from snaketalk.settings import Settings
+from snaketalk.webhook_server import NoResponse
 from snaketalk.wrappers import Message, WebHookEvent
 
 
@@ -55,8 +56,8 @@ class EventHandler(object):
         logging.info("EventHandlerWebHook queue listener started.")
         while True:
             try:
-                webhook_id, data = webhook_queue.get_nowait()
-                await self._handle_webhook(webhook_id, data)
+                event = webhook_queue.get_nowait()
+                await self._handle_webhook(event)
             except queue.Empty:
                 pass
             await asyncio.sleep(0.0001)
@@ -100,12 +101,12 @@ class EventHandler(object):
         # Execute the callbacks in parallel
         asyncio.gather(*tasks)
 
-    async def _handle_webhook(self, webhook_id: str, event: WebHookEvent):
+    async def _handle_webhook(self, event: WebHookEvent):
         # Find all the listeners that match this webhook id, and have their plugins
         # handle the rest.
         tasks = []
         for matcher, functions in self.webhook_listeners.items():
-            match = matcher.match(webhook_id)
+            match = matcher.match(event.webhook_id)
             if match:
                 for function in functions:
                     # Create an asyncio task to handle this callback
@@ -114,5 +115,10 @@ class EventHandler(object):
                             function.plugin.call_function(function, event)
                         )
                     )
-        # Execute the callbacks in parallel
-        asyncio.gather(*tasks)
+        # If this webhook doesn't correspond to any listeners, signal the WebHookServer
+        # to not wait for any response
+        if len(tasks) == 0:
+            self.driver.respond_to_web(event, NoResponse)
+        # If it does, execute the callbacks in parallel
+        else:
+            asyncio.gather(*tasks)

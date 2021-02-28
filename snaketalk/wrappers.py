@@ -70,17 +70,21 @@ class Message(EventWrapper):
 class WebHookEvent(EventWrapper):
     """Wrapper around an incoming webhook post request.
 
-    Contains a unique request ID.
+    Arguments:
+    - request_id: str, unique identifier of this web request
+    - webhook_id: str, the webhook id that was triggered.
     """
 
     def __init__(
         self,
         *args,
         request_id: str,
+        webhook_id: str,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.request_id = request_id
+        self.webhook_id = webhook_id
         # Whether a web response was already sent to this request or not.
         self.responded = False
 

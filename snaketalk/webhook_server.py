@@ -34,12 +34,14 @@ class WebHookServer:
 
     def __init__(
         self,
+        settings: Settings,
         event_queue: Optional[Queue] = None,
         response_queue: Optional[Queue] = None,
     ):
         self.app = web.Application()
         self.app_runner = web.AppRunner(self.app)
-        self.settings = Settings()
+        self.settings = settings
+        self.running = False
 
         # Create queues if necessary.
         self.event_queue = event_queue or Queue()
@@ -56,12 +58,14 @@ class WebHookServer:
             self.app_runner, webhook_host_ip, self.settings.WEBHOOK_HOST_PORT
         )
         await site.start()
+        self.running = True
 
         # Schedule the response awaiting function to the same loop as the web server
         asyncio.get_event_loop().create_task(self._obtain_responses_loop())
 
-    def stop(self):
+    async def stop(self):
         self.app_runner.cleanup()
+        self.running = False
 
     async def _obtain_responses_loop(self):
         """Checks the response queue for incoming responses and passes them on to the
@@ -69,8 +73,10 @@ class WebHookServer:
         while True:
             try:
                 request_id, response = self.response_queue.get_nowait()
+                print(f"Received response {response} for request {request_id}")
                 try:
-                    self.response_handlers[request_id].set_result(response)
+                    if not self.response_handlers[request_id].cancelled():
+                        self.response_handlers[request_id].set_result(response)
                     del self.response_handlers[request_id]
                 except KeyError:
                     # If this handler already received a response, we can skip this.
@@ -85,13 +91,17 @@ class WebHookServer:
         webhook_id = request.match_info.get("webhook_id", "")
         if "trigger_id" in data:
             # Use the trigger ID to identify this request
-            event = ActionEvent(data, request_id=data["trigger_id"])
+            event = ActionEvent(
+                data, request_id=data["trigger_id"], webhook_id=webhook_id
+            )
         else:
             # Generate an ID based on the current time and a random number.
             event = WebHookEvent(
-                data, request_id=f"{time.time()}_{random.randint(10000)}"
+                data,
+                request_id=f"{time.time()}_{random.randint(0, 10000)}",
+                webhook_id=webhook_id,
             )
-        self.event_queue.put((webhook_id, event))
+        self.event_queue.put(event)
 
         # Register a Future object that will signal us when a response has arrived,
         # and wait for it to complete.
@@ -101,6 +111,6 @@ class WebHookServer:
 
         result = await_response.result()
         if result is NoResponse:
-            return
+            return web.Response(status=200)
 
         return web.json_response(result)

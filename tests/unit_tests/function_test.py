@@ -199,6 +199,10 @@ def example_webhook_listener(self, event):
     pass
 
 
+def create_webhook_event():
+    return WebHookEvent(body={}, request_id="some_id", webhook_id="some_id")
+
+
 class TestWebHookFunction:
     def test_listen_webhook(self):
         pattern = "test_regexp"
@@ -248,7 +252,7 @@ class TestWebHookFunction:
         ) as mocked:
             f = WebHookFunction(example_webhook_listener, matcher=re.compile(""))
             f.plugin = p
-            event = WebHookEvent(body={}, request_id="some_id")
+            event = create_webhook_event()
 
             f(event)
             # We expect the WebHookFunction to automatically respond NoResponse
@@ -264,7 +268,7 @@ class TestWebHookFunction:
         ) as mocked:
             f = WebHookFunction(webhook_function, matcher=re.compile(""))
             f.plugin = p
-            event = WebHookEvent(body={}, request_id="some_id")
+            event = create_webhook_event()
 
             # Asyncio helper to emulate running from async function
             async def run():
@@ -284,7 +288,7 @@ class TestWebHookFunction:
         ) as mocked:
             f = WebHookFunction(webhook_function, matcher=re.compile(""))
             f.plugin = p
-            event = WebHookEvent(body={}, request_id="some_id")
+            event = create_webhook_event()
 
             f(event)
             # We expect the WebHookFunction to not respond anything, since the function
@@ -301,7 +305,7 @@ class TestWebHookFunction:
         ) as mocked:
             f = WebHookFunction(webhook_function, matcher=re.compile(""))
             f.plugin = p
-            event = WebHookEvent(body={}, request_id="some_id")
+            event = create_webhook_event()
 
             # Asyncio helper to emulate running from async function
             async def run():

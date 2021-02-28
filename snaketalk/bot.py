@@ -54,7 +54,7 @@ class Bot:
         return plugins
 
     def _initialize_webhook_server(self):
-        self.webhook_server = WebHookServer()
+        self.webhook_server = WebHookServer(self.settings)
         self.driver.response_queue = self.webhook_server.response_queue
         # Schedule the queue loop to the current event loop so that it starts together
         # with self.init_websocket.

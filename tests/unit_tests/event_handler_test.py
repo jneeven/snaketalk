@@ -170,8 +170,11 @@ class TestEventHandler:
         ) as mocked:
             asyncio.run(
                 handler._handle_webhook(
-                    "ping",
-                    WebHookEvent(body={"text": "hello!"}, request_id="request_id"),
+                    WebHookEvent(
+                        body={"text": "hello!"},
+                        request_id="request_id",
+                        webhook_id="ping",
+                    ),
                 )
             )
             # Assert the function was called, so we know the asserts succeeded.
