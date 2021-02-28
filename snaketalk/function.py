@@ -92,8 +92,9 @@ class MessageFunction(Function):
         argspec = list(inspect.signature(_function).parameters.keys())
         if not argspec[:2] == ["self", "message"]:
             raise TypeError(
-                "Any listener function should at least have the positional arguments"
-                f" `self` and `message`, but function {self.name} has arguments {argspec}."
+                "Any message listener function should at least have the positional"
+                f" arguments `self` and `message`, but function {self.name} has"
+                f" arguments {argspec}."
             )
 
     def __call__(self, message: Message, *args):
@@ -206,37 +207,47 @@ class WebHookFunction(Function):
         super().__init__(*args, **kwargs)
 
         if isinstance(self.function, click.Command):
-            raise TypeError()  # TODO: Explain why webhook functions can't be click commands
+            raise TypeError(
+                "Webhook functions can't be click commands, since they don't take any"
+                " additional arguments!"
+            )
 
-        # TODO: check argspec
+        self.name = self.function.__qualname__
+        self.docstring = self.function.__doc__
+
+        argspec = list(inspect.signature(self.function).parameters.keys())
+        if not argspec == ["self", "event"]:
+            raise TypeError(
+                "A webhook listener function should have exactly two arguments:"
+                f" `self` and `event`, but function {self.name} has arguments {argspec}."
+            )
 
     def __call__(self, event: WebHookEvent):
-        try:
-            result = self.function(self.plugin, event)
-        except Exception:
-            traceback.print_exc()
-            # TODO: log the error trace instead of printing it
-            result = None
-
         # Signal the WebHookServer that it we won't be sending a response.
         def ensure_response(*args):
             if not event.responded:
                 self.plugin.driver.respond_to_web(event, NoResponse)
 
         # If this is a coroutine, wrap it in a task with ensure_response as callback
-        if asyncio.iscoroutine(result):
-            result = asyncio.create_task(result)
-            result.add_done_callback(ensure_response)
-            return result
+        if self.is_coroutine:
+            task = asyncio.create_task(self.function(self.plugin, event))
+            task.add_done_callback(ensure_response)
+            return task
 
-        ensure_response()
-        return result
+        # If not, simply call both of these functions
+        try:
+            self.function(self.plugin, event)
+        except Exception:
+            traceback.print_exc()
+            # TODO: log the error trace instead of printing it
+        finally:
+            return ensure_response()
 
 
 def listen_webhook(
     regexp: str,
 ):
-    """Placeholder, needs to be elaborated."""
+    """Wrap the given function in a WebHookFunction class with the specified regexp."""
 
     def wrapped_func(func):
         pattern = re.compile(regexp)

@@ -31,6 +31,11 @@ class Plugin(ABC):
             re.Pattern, Sequence[WebHookFunction]
         ] = defaultdict(list)
 
+        # We have to register the help function listeners at runtime to prevent the
+        # Function object from being shared across different Plugins.
+        self.help = listen_to("^help$", needs_mention=True)(Plugin.help)
+        self.help = listen_to("^!help$")(Plugin.help)
+
     def initialize(self, driver: Driver, settings: Settings = Settings()):
         self.driver = driver
         self.settings = settings
@@ -90,12 +95,14 @@ class Plugin(ABC):
             for function in functions:
                 string += f"- {function.get_help_string()}"
             string += "----\n"
-        # TODO: add webhooks?
+        if len(self.webhook_listeners) > 0:
+            string += "### Registered webhooks:\n"
+            for functions in self.webhook_listeners.values():
+                for function in functions:
+                    string += f"- {function.get_help_string()}"
 
         return string
 
-    @listen_to("^help$", needs_mention=True)
-    @listen_to("^!help$")
     async def help(self, message: Message):
         """Prints the list of functions registered on every active plugin."""
         self.driver.reply_to(message, self.get_help_string())
