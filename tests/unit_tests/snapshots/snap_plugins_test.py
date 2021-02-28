@@ -43,4 +43,7 @@ snapshots['TestPlugin.test_help_string 1'] = '''Plugin FakePlugin has the follow
 - `pattern`:
         This is the docstring of my_function.
 ----
+### Registered webhooks:
+- `webhook_id`:
+        A webhook function.
 '''

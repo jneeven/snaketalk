@@ -1,5 +1,10 @@
 from snaketalk.bot import Bot
-from snaketalk.function import MessageFunction, WebHookFunction, listen_to
+from snaketalk.function import (
+    MessageFunction,
+    WebHookFunction,
+    listen_to,
+    listen_webhook,
+)
 from snaketalk.plugins import ExamplePlugin, Plugin
 from snaketalk.scheduler import schedule
 from snaketalk.settings import Settings
@@ -11,6 +16,7 @@ __all__ = [
     "WebHookFunction",
     "Plugin",
     "listen_to",
+    "listen_webhook",
     "ExamplePlugin",
     "schedule",
     "Settings",
