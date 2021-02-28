@@ -5,13 +5,14 @@ from snaketalk.settings import Settings
 from snaketalk.wrappers import ActionEvent, Message
 
 
-class WebhookExample(Plugin):
+class WebHookExample(Plugin):
     """Webhook plugin with examples of webhook server functionality."""
 
     def initialize(self, driver: Driver, settings: Settings):
         super().initialize(driver, settings)
         self.webhook_host_url = settings.WEBHOOK_HOST_URL
         self.webhook_host_port = settings.WEBHOOK_HOST_PORT
+        return self
 
     @listen_webhook("ping")
     @listen_webhook("pong")

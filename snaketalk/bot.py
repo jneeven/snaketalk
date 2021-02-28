@@ -5,7 +5,7 @@ from typing import Sequence
 
 from snaketalk.driver import Driver
 from snaketalk.event_handler import EventHandler
-from snaketalk.plugins import ExamplePlugin, Plugin, WebhookExample
+from snaketalk.plugins import ExamplePlugin, Plugin, WebHookExample
 from snaketalk.settings import Settings
 from snaketalk.webhook_server import WebHookServer
 
@@ -18,7 +18,7 @@ class Bot:
     """
 
     def __init__(
-        self, settings=Settings(), plugins=[ExamplePlugin(), WebhookExample()]
+        self, settings=Settings(), plugins=[ExamplePlugin(), WebHookExample()]
     ):
         logging.basicConfig(
             **{
