@@ -2,9 +2,10 @@ import asyncio
 import json
 from unittest import mock
 
-from snaketalk import ExamplePlugin, Message, Settings
+from snaketalk import ExamplePlugin, Message, Settings, WebHookExample
 from snaketalk.driver import Driver
-from snaketalk.message_handler import MessageHandler
+from snaketalk.event_handler import EventHandler
+from snaketalk.wrappers import WebHookEvent
 
 
 def create_message(
@@ -53,10 +54,12 @@ def create_message(
     )
 
 
-class TestMessageHandler:
+class TestEventHandler:
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
     def test_init(self):
-        handler = MessageHandler(Driver(), Settings(), plugins=[ExamplePlugin()])
+        handler = EventHandler(
+            Driver(), Settings(), plugins=[ExamplePlugin(), WebHookExample()]
+        )
         # Test the name matcher regexp
         assert handler._name_matcher.match("@my_username are you there?")
         assert not handler._name_matcher.match("@other_username are you there?")
@@ -66,6 +69,8 @@ class TestMessageHandler:
         for plugin in handler.plugins:
             for pattern, listener in plugin.message_listeners.items():
                 assert listener in handler.message_listeners[pattern]
+            for pattern, listener in plugin.webhook_listeners.items():
+                assert listener in handler.webhook_listeners[pattern]
 
         # And vice versa, check that any listeners on the handler come from the
         # registered plugins
@@ -78,10 +83,19 @@ class TestMessageHandler:
                         for plugin in handler.plugins
                     ]
                 )
+        for pattern, listeners in handler.webhook_listeners.items():
+            for listener in listeners:
+                assert any(
+                    [
+                        pattern in plugin.webhook_listeners
+                        and listener in plugin.webhook_listeners[pattern]
+                        for plugin in handler.plugins
+                    ]
+                )
 
     @mock.patch("snaketalk.driver.Driver.username", new="my_username")
     def test_should_ignore(self):
-        handler = MessageHandler(
+        handler = EventHandler(
             Driver(), Settings(IGNORE_USERS=["ignore_me"]), plugins=[]
         )
         # We shouldn't ignore a message from betty, since she is not listed
@@ -92,7 +106,7 @@ class TestMessageHandler:
         assert handler._should_ignore(create_message(sender_name="my_username"))
 
         # But shouldn't do so if this is explicitly requested
-        handler = MessageHandler(
+        handler = EventHandler(
             Driver(),
             Settings(IGNORE_USERS=["ignore_me"]),
             plugins=[],
@@ -100,13 +114,13 @@ class TestMessageHandler:
         )
         assert not handler._should_ignore(create_message(sender_name="my_username"))
 
-    @mock.patch("snaketalk.message_handler.MessageHandler._handle_post")
+    @mock.patch("snaketalk.event_handler.EventHandler._handle_post")
     def test_handle_event(self, handle_post):
-        handler = MessageHandler(Driver(), Settings(), plugins=[])
+        handler = EventHandler(Driver(), Settings(), plugins=[])
         # This event should trigger _handle_post
-        asyncio.run(handler.handle_event(json.dumps(create_message().body)))
+        asyncio.run(handler._handle_event(json.dumps(create_message().body)))
         # This event should not
-        asyncio.run(handler.handle_event(json.dumps({"event": "some_other_event"})))
+        asyncio.run(handler._handle_event(json.dumps({"event": "some_other_event"})))
 
         handle_post.assert_called_once_with(create_message().body)
 
@@ -116,7 +130,7 @@ class TestMessageHandler:
         driver = Driver()
         plugin = ExamplePlugin().initialize(driver)
         # Construct a handler with it
-        handler = MessageHandler(driver, Settings(), plugins=[plugin])
+        handler = EventHandler(driver, Settings(), plugins=[plugin])
 
         # Mock the call_function of the plugin so we can make some asserts
         async def mock_call_function(function, message, groups):
@@ -125,13 +139,43 @@ class TestMessageHandler:
             assert message.text == "sleep 5"  # username should be stripped off
             assert groups == ["5"]  # arguments should be matched and passed explicitly
 
-        plugin.call_function = mock.Mock(wraps=mock_call_function)
+        with mock.patch.object(
+            plugin, "call_function", wraps=mock_call_function
+        ) as mocked:
+            # Transform the default message into a raw post event so we can pass it
+            new_body = create_message(text="@my_username sleep 5").body.copy()
+            new_body["data"]["post"] = json.dumps(new_body["data"]["post"])
+            new_body["data"]["mentions"] = json.dumps(new_body["data"]["mentions"])
+            asyncio.run(handler._handle_post(new_body))
 
-        # Transform the default message into a raw post event so we can pass it
-        new_body = create_message(text="@my_username sleep 5").body.copy()
-        new_body["data"]["post"] = json.dumps(new_body["data"]["post"])
-        new_body["data"]["mentions"] = json.dumps(new_body["data"]["mentions"])
-        asyncio.run(handler._handle_post(new_body))
+            # Assert the function was called, so we know the asserts succeeded.
+            mocked.assert_called_once()
 
-        # Assert the function was called, so we know the asserts succeeded.
-        plugin.call_function.assert_called_once()
+    def test_handle_webhook(self):
+        # Create an initialized plugin so its listeners are registered
+        driver = Driver()
+        plugin = WebHookExample().initialize(driver, Settings())
+        # Construct a handler with it
+        handler = EventHandler(driver, Settings(), plugins=[plugin])
+
+        # Mock the call_function of the plugin so we can make some asserts
+        async def mock_call_function(function, event, groups):
+            # This is the regexp that we're trying to trigger
+            assert function.matcher.pattern == "ping"
+            assert event.text == "hello!"
+            assert groups == []
+
+        with mock.patch.object(
+            plugin, "call_function", wraps=mock_call_function
+        ) as mocked:
+            asyncio.run(
+                handler._handle_webhook(
+                    WebHookEvent(
+                        body={"text": "hello!"},
+                        request_id="request_id",
+                        webhook_id="ping",
+                    ),
+                )
+            )
+            # Assert the function was called, so we know the asserts succeeded.
+            mocked.assert_called_once()

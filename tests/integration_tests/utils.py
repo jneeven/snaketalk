@@ -1,16 +1,62 @@
 import time
 from multiprocessing import Process
+from typing import Dict
 
 import pytest
 from filelock import FileLock
 
-from snaketalk import Bot, ExamplePlugin, Message, Plugin, Settings, listen_to
+from snaketalk import (
+    Bot,
+    ExamplePlugin,
+    Message,
+    Plugin,
+    Settings,
+    WebHookExample,
+    listen_to,
+)
+from snaketalk.driver import Driver
+
+OFF_TOPIC_ID = "ahzqezf33jny9mpst758dnaahw"  # Channel id
+TEAM_ID = "h6aje7ujgpggjrtik6f3m8fjah"
+MAIN_BOT_ID = "hjawadm1ntdxzefd193x8mos7a"
+RESPONSE_TIMEOUT = 10
+
+
+def expect_reply(driver: Driver, post: Dict, wait=RESPONSE_TIMEOUT, retries=1):
+    """Utility function to specify we expect some kind of reply after `wait` seconds."""
+    reply = None
+    for _ in range(retries + 1):
+        time.sleep(wait)
+        thread_info = driver.get_thread(post["id"])
+        print(thread_info)
+        reply_id = thread_info["order"][-1]
+        if reply_id != post["id"]:
+            reply = thread_info["posts"][reply_id]
+            break
+
+    if not reply:
+        raise ValueError("Expected a response, but didn't get any!")
+
+    return reply
 
 
 class TestPlugin(Plugin):
     @listen_to("^starting integration tests")
     async def reply_start(self, message: Message):
         self.driver.reply_to(message, "Bring it on!")
+
+
+@pytest.fixture(scope="session")
+def driver():
+    return Bot(
+        settings=Settings(
+            MATTERMOST_URL="http://127.0.0.1",
+            BOT_TOKEN="7arqwr6kzibc58zomct9ndfk1e",
+            MATTERMOST_PORT=8065,
+            SSL_VERIFY=False,
+        ),
+        plugins=[],  # We only use this to send messages, not to reply to anything.
+    ).driver
 
 
 # At the start of the pytest session, the bot is started
@@ -29,7 +75,7 @@ def start_bot(request):
                 MATTERMOST_PORT=8065,
                 SSL_VERIFY=False,
             ),
-            plugins=[TestPlugin(), ExamplePlugin()],
+            plugins=[TestPlugin(), ExamplePlugin(), WebHookExample()],
         )
 
         def run_bot():

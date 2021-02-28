@@ -4,10 +4,10 @@ from unittest import mock
 
 import click
 
-from snaketalk import Plugin, listen_to
+from snaketalk import Plugin, listen_to, listen_webhook
 from snaketalk.driver import Driver
 
-from .message_handler_test import create_message
+from .event_handler_test import create_message
 
 
 # Used in the plugin tests below
@@ -39,6 +39,11 @@ class FakePlugin(Plugin):
         """
         pass
 
+    @listen_webhook("webhook_id")
+    def webhook_listener(self, event):
+        """A webhook function."""
+        pass
+
 
 class TestPlugin:
     def test_initialize(self):
@@ -60,6 +65,11 @@ class TestPlugin:
             p.message_listeners[re.compile("another_async_pattern")][0].function
             == FakePlugin.my_async_function.function
         )
+
+        assert len(p.webhook_listeners) == 1
+        assert p.webhook_listeners[re.compile("webhook_id")] == [
+            FakePlugin.webhook_listener
+        ]
 
     @mock.patch("snaketalk.driver.ThreadPool.add_task")
     def test_call_function(self, add_task):

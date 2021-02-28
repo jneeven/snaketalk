@@ -1,10 +1,13 @@
+import queue
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
 import mattermostdriver
+from aiohttp.client import ClientSession
 
-from snaketalk.message import Message
 from snaketalk.threadpool import ThreadPool
+from snaketalk.webhook_server import WebHookServer
+from snaketalk.wrappers import Message, WebHookEvent
 
 
 class Driver(mattermostdriver.Driver):
@@ -20,11 +23,18 @@ class Driver(mattermostdriver.Driver):
         """
         super().__init__(*args, **kwargs)
         self.threadpool = ThreadPool(num_workers=num_threads)
+        # Queue to communicate with the WebHookServer
+        self.response_queue: Optional[queue.Queue] = None
+        self.webhook_url = None
 
     def login(self, *args, **kwargs):
         super().login(*args, **kwargs)
         self.user_id = self.client._userid
         self.username = self.client._username
+
+    def register_webhook_server(self, server: WebHookServer):
+        self.response_queue = server.response_queue
+        self.webhook_url = f"{server.url}:{server.port}/hooks"
 
     def create_post(
         self,
@@ -126,6 +136,22 @@ class Driver(mattermostdriver.Driver):
             file_paths=file_paths,
             props=props,
         )
+
+    def respond_to_web(self, event: WebHookEvent, response):
+        """Send a web response to the given WebHookEvent."""
+        self.response_queue.put((event.request_id, response))
+        event.responded = True
+
+    async def trigger_own_webhook(self, webhook_id: str, data: Dict):
+        """Triggers a a webhook with id webhook_id on the running WebHookServer."""
+        if not self.webhook_url:
+            raise ValueError("The Driver is not aware of any running webhook server!")
+
+        async with ClientSession() as session:
+            return await session.post(
+                f"{self.webhook_url}/{webhook_id}",
+                json=data,
+            )
 
     def upload_files(
         self, file_paths: Sequence[Union[str, Path]], channel_id: str

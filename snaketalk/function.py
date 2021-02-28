@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Sequence
 
 import click
 
-from snaketalk.message import Message
 from snaketalk.utils import completed_future, spaces
-from snaketalk.webhook_event import WebHookEvent
+from snaketalk.webhook_server import NoResponse
+from snaketalk.wrappers import Message, WebHookEvent
 
 
 class Function(ABC):
@@ -91,8 +92,9 @@ class MessageFunction(Function):
         argspec = list(inspect.signature(_function).parameters.keys())
         if not argspec[:2] == ["self", "message"]:
             raise TypeError(
-                "Any listener function should at least have the positional arguments"
-                f" `self` and `message`, but function {self.name} has arguments {argspec}."
+                "Any message listener function should at least have the positional"
+                f" arguments `self` and `message`, but function {self.name} has"
+                f" arguments {argspec}."
             )
 
     def __call__(self, message: Message, *args):
@@ -205,17 +207,46 @@ class WebHookFunction(Function):
         super().__init__(*args, **kwargs)
 
         if isinstance(self.function, click.Command):
-            raise TypeError()  # TODO: Explain why webhook functions can't be click commands
+            raise TypeError(
+                "Webhook functions can't be click commands, since they don't take any"
+                " additional arguments!"
+            )
+
+        self.name = self.function.__qualname__
+        self.docstring = self.function.__doc__
+
+        argspec = list(inspect.signature(self.function).parameters.keys())
+        if not argspec == ["self", "event"]:
+            raise TypeError(
+                "A webhook listener function should have exactly two arguments:"
+                f" `self` and `event`, but function {self.name} has arguments {argspec}."
+            )
 
     def __call__(self, event: WebHookEvent):
-        # TODO: implement any necessary logic here
-        return self.function(self.plugin, event)
+        # Signal the WebHookServer that it we won't be sending a response.
+        def ensure_response(*args):
+            if not event.responded:
+                self.plugin.driver.respond_to_web(event, NoResponse)
+
+        # If this is a coroutine, wrap it in a task with ensure_response as callback
+        if self.is_coroutine:
+            task = asyncio.create_task(self.function(self.plugin, event))
+            task.add_done_callback(ensure_response)
+            return task
+
+        # If not, simply call both of these functions
+        try:
+            self.function(self.plugin, event)
+        except Exception:
+            logging.error(exc_info=True)
+        finally:
+            return ensure_response()
 
 
 def listen_webhook(
     regexp: str,
 ):
-    """Placeholder, needs to be elaborated."""
+    """Wrap the given function in a WebHookFunction class with the specified regexp."""
 
     def wrapped_func(func):
         pattern = re.compile(regexp)

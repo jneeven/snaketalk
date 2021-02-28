@@ -1,16 +1,19 @@
 import asyncio
 import json
+import logging
+import queue
 import re
 from collections import defaultdict
 from typing import Sequence
 
 from snaketalk.driver import Driver
-from snaketalk.message import Message
 from snaketalk.plugins import Plugin
 from snaketalk.settings import Settings
+from snaketalk.webhook_server import NoResponse
+from snaketalk.wrappers import Message, WebHookEvent
 
 
-class MessageHandler(object):
+class EventHandler(object):
     def __init__(
         self,
         driver: Driver,
@@ -18,8 +21,8 @@ class MessageHandler(object):
         plugins: Sequence[Plugin],
         ignore_own_messages=True,
     ):
-        """The MessageHandler class takes care of the connection to mattermost and
-        calling the appropriate response function to each event."""
+        """The EventHandler class takes care of the connection to mattermost and calling
+        the appropriate response function to each event."""
         self.driver = driver
         self.settings = settings
         self.ignore_own_messages = ignore_own_messages
@@ -27,19 +30,20 @@ class MessageHandler(object):
 
         self._name_matcher = re.compile(rf"^@?{self.driver.username}\:?\s?")
 
-        # Collect the message listeners from all plugins
+        # Collect the listeners from all plugins
         self.message_listeners = defaultdict(list)
+        self.webhook_listeners = defaultdict(list)
         for plugin in self.plugins:
             for matcher, functions in plugin.message_listeners.items():
                 self.message_listeners[matcher].extend(functions)
-
-        # TODO: also collect the webhook listeners.
+            for matcher, functions in plugin.webhook_listeners.items():
+                self.webhook_listeners[matcher].extend(functions)
 
     def start(self):
         # This is blocking, will loop forever
-        self.driver.init_websocket(self.handle_event)
+        self.driver.init_websocket(self._handle_event)
 
-    def _should_ignore(self, message):
+    def _should_ignore(self, message: Message):
         # Ignore message from senders specified in settings, and maybe from ourself
         return (
             True
@@ -48,7 +52,17 @@ class MessageHandler(object):
             else False
         ) or (self.ignore_own_messages and message.sender_name == self.driver.username)
 
-    async def handle_event(self, data):
+    async def _check_queue_loop(self, webhook_queue: queue.Queue):
+        logging.info("EventHandlerWebHook queue listener started.")
+        while True:
+            try:
+                event = webhook_queue.get_nowait()
+                await self._handle_webhook(event)
+            except queue.Empty:
+                pass
+            await asyncio.sleep(0.0001)
+
+    async def _handle_event(self, data):
         post = json.loads(data)
         event_action = post.get("event")
         if event_action == "posted":
@@ -87,6 +101,24 @@ class MessageHandler(object):
         # Execute the callbacks in parallel
         asyncio.gather(*tasks)
 
-    async def _handle_webhook(self, data):
-        # TODO: implement code similar to _handle_post, but with webhook listeners.
-        pass
+    async def _handle_webhook(self, event: WebHookEvent):
+        # Find all the listeners that match this webhook id, and have their plugins
+        # handle the rest.
+        tasks = []
+        for matcher, functions in self.webhook_listeners.items():
+            match = matcher.match(event.webhook_id)
+            if match:
+                for function in functions:
+                    # Create an asyncio task to handle this callback
+                    tasks.append(
+                        asyncio.create_task(
+                            function.plugin.call_function(function, event)
+                        )
+                    )
+        # If this webhook doesn't correspond to any listeners, signal the WebHookServer
+        # to not wait for any response
+        if len(tasks) == 0:
+            self.driver.respond_to_web(event, NoResponse)
+        # If it does, execute the callbacks in parallel
+        else:
+            asyncio.gather(*tasks)

@@ -1,29 +1,40 @@
-from snaketalk.message import Message
-from snaketalk.plugins.base import Plugin, listen_to
+from snaketalk.driver import Driver
+from snaketalk.function import listen_to, listen_webhook
+from snaketalk.plugins.base import Plugin
 from snaketalk.settings import Settings
+from snaketalk.wrappers import ActionEvent, Message, WebHookEvent
 
 
-class WebhookExample(Plugin):
+class WebHookExample(Plugin):
     """Webhook plugin with examples of webhook server functionality."""
 
-    def __init__(self):
-        super().__init__()
-        self.webhook_host_url = Settings().WEBHOOK_HOST_URL
-        self.webhook_host_port = Settings().WEBHOOK_HOST_PORT
-        self.webhook_id = Settings().WEBHOOK_ID
-        self.webhook_url = self._make_webhook_url()
+    def initialize(self, driver: Driver, settings: Settings):
+        super().initialize(driver, settings)
+        self.webhook_host_url = settings.WEBHOOK_HOST_URL
+        self.webhook_host_port = settings.WEBHOOK_HOST_PORT
+        return self
 
-    def _make_webhook_url(self):
-        mattermost_url = Settings().MATTERMOST_URL
-        mattermost_port = Settings().MATTERMOST_PORT
-        webhook_url = (
-            f"http://{mattermost_url}:{mattermost_port}/hooks/{self.webhook_id}"
-        )
-
-        return webhook_url
+    @listen_webhook("ping")
+    @listen_webhook("pong")
+    async def action_listener(self, event: WebHookEvent):
+        """Listens to webhooks 'ping' and 'pong', and either updates the originating
+        action post or sends a channel message to indicate that the webhook works."""
+        if isinstance(event, ActionEvent):
+            self.driver.respond_to_web(
+                event,
+                {
+                    "update": {"message": event.context["text"], "props": {}},
+                    "ephemeral_text": "You updated the post!",
+                },
+            )
+        else:
+            self.driver.create_post(
+                event.body["channel_id"], f"Webhook {event.webhook_id} triggered!"
+            )
 
     @listen_to("!button", direct_only=False)
     async def webhook_button(self, message: Message):
+        """Creates a button that will trigger a webhook depending on the choice."""
         self.driver.reply_to(
             message,
             "",
@@ -34,23 +45,24 @@ class WebhookExample(Plugin):
                         "text": "Take your pick..",
                         "actions": [
                             {
-                                "id": "Ping",
+                                "id": "sendPing",
                                 "name": "Ping",
                                 "integration": {
                                     "url": f"{self.webhook_host_url}:{self.webhook_host_port}/"
-                                    "actions/ping",
-                                    "context": {"data": "ping"},
+                                    "hooks/ping",
+                                    "context": {
+                                        "text": "The ping webhook works! :tada:",
+                                    },
                                 },
                             },
                             {
-                                "id": "sendWebhook",
-                                "name": "Send a webhook",
+                                "id": "sendPong",
+                                "name": "Pong",
                                 "integration": {
                                     "url": f"{self.webhook_host_url}:{self.webhook_host_port}/"
-                                    f"hooks/{self.webhook_id}",
+                                    "hooks/pong",
                                     "context": {
-                                        "text": "The webhook works! :tada:",
-                                        "webhook_url": self.webhook_url,
+                                        "text": "The pong webhook works! :tada:",
                                     },
                                 },
                             },

@@ -4,18 +4,19 @@ import logging
 import re
 from abc import ABC
 from collections import defaultdict
-from typing import Dict, Sequence
+from typing import Dict, Optional, Sequence
 
 from snaketalk.driver import Driver
-from snaketalk.function import MessageFunction, listen_to
-from snaketalk.message import Message
+from snaketalk.function import Function, MessageFunction, WebHookFunction, listen_to
+from snaketalk.settings import Settings
+from snaketalk.wrappers import EventWrapper, Message
 
 
 class Plugin(ABC):
     """A Plugin is a self-contained class that defines what functions should be executed
     given different inputs.
 
-    It will be called by the MessageHandler whenever one of its listeners is triggered,
+    It will be called by the EventHandler whenever one of its listeners is triggered,
     but execution of the corresponding function is handled by the plugin itself. This
     way, you can implement multithreading or multiprocessing as desired.
     """
@@ -25,18 +26,34 @@ class Plugin(ABC):
         self.message_listeners: Dict[
             re.Pattern, Sequence[MessageFunction]
         ] = defaultdict(list)
+        self.webhook_listeners: Dict[
+            re.Pattern, Sequence[WebHookFunction]
+        ] = defaultdict(list)
 
-    def initialize(self, driver: Driver):
+        # We have to register the help function listeners at runtime to prevent the
+        # Function object from being shared across different Plugins.
+        self.help = listen_to("^help$", needs_mention=True)(Plugin.help)
+        self.help = listen_to("^!help$")(self.help)
+
+    def initialize(self, driver: Driver, settings: Optional[Settings] = None):
         self.driver = driver
 
         # Register listeners for any listener functions we might have
         for attribute in dir(self):
             attribute = getattr(self, attribute)
-            if isinstance(attribute, MessageFunction):
+            if isinstance(attribute, Function):
                 # Register this function and any potential siblings
                 for function in [attribute] + attribute.siblings:
                     function.plugin = self
-                    self.message_listeners[function.matcher].append(function)
+                    if isinstance(function, MessageFunction):
+                        self.message_listeners[function.matcher].append(function)
+                    elif isinstance(function, WebHookFunction):
+                        self.webhook_listeners[function.matcher].append(function)
+                    else:
+                        raise TypeError(
+                            f"{self.__class__.__name__} has a function of unsupported"
+                            f" type {type(function)}."
+                        )
 
         return self
 
@@ -57,14 +74,17 @@ class Plugin(ABC):
         return self
 
     async def call_function(
-        self, function: MessageFunction, message: Message, groups: Sequence[str]
+        self,
+        function: Function,
+        event: EventWrapper,
+        groups: Optional[Sequence[str]] = [],
     ):
         if function.is_coroutine:
-            await function(message, *groups)  # type:ignore
+            await function(event, *groups)  # type:ignore
         else:
             # By default, we use the global threadpool of the driver, but we could use
             # a plugin-specific thread or process pool if we wanted.
-            self.driver.threadpool.add_task(function, message, *groups)
+            self.driver.threadpool.add_task(function, event, *groups)
 
     def get_help_string(self):
         string = f"Plugin {self.__class__.__name__} has the following functions:\n"
@@ -73,11 +93,14 @@ class Plugin(ABC):
             for function in functions:
                 string += f"- {function.get_help_string()}"
             string += "----\n"
+        if len(self.webhook_listeners) > 0:
+            string += "### Registered webhooks:\n"
+            for functions in self.webhook_listeners.values():
+                for function in functions:
+                    string += f"- {function.get_help_string()}"
 
         return string
 
-    @listen_to("^help$", needs_mention=True)
-    @listen_to("^!help$")
     async def help(self, message: Message):
         """Prints the list of functions registered on every active plugin."""
         self.driver.reply_to(message, self.get_help_string())
