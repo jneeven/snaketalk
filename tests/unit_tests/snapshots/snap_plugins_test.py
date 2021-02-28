@@ -24,13 +24,13 @@ snapshots['TestPlugin.test_help_string 1'] = '''Plugin FakePlugin has the follow
     - Needs to be a direct message.
     - Restricted to certain users.
 ----
+- `^!help$`:
+        Prints the list of functions registered on every active plugin.
+----
 - `^help$`:
         Prints the list of functions registered on every active plugin.
     Additional information:
     - Needs to either mention @ or be a direct message.
-----
-- `^!help$`:
-        Prints the list of functions registered on every active plugin.
 ----
 - `async_pattern`:
         Async function docstring.

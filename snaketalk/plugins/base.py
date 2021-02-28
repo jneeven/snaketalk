@@ -23,7 +23,6 @@ class Plugin(ABC):
 
     def __init__(self):
         self.driver = None
-        self.settings = None
         self.message_listeners: Dict[
             re.Pattern, Sequence[MessageFunction]
         ] = defaultdict(list)
@@ -34,11 +33,10 @@ class Plugin(ABC):
         # We have to register the help function listeners at runtime to prevent the
         # Function object from being shared across different Plugins.
         self.help = listen_to("^help$", needs_mention=True)(Plugin.help)
-        self.help = listen_to("^!help$")(Plugin.help)
+        self.help = listen_to("^!help$")(self.help)
 
-    def initialize(self, driver: Driver, settings: Settings = Settings()):
+    def initialize(self, driver: Driver, settings: Optional[Settings] = None):
         self.driver = driver
-        self.settings = settings
 
         # Register listeners for any listener functions we might have
         for attribute in dir(self):

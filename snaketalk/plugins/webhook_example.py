@@ -10,8 +10,8 @@ class WebhookExample(Plugin):
 
     def initialize(self, driver: Driver, settings: Settings):
         super().initialize(driver, settings)
-        self.webhook_host_url = self.settings.WEBHOOK_HOST_URL
-        self.webhook_host_port = self.settings.WEBHOOK_HOST_PORT
+        self.webhook_host_url = settings.WEBHOOK_HOST_URL
+        self.webhook_host_port = settings.WEBHOOK_HOST_PORT
 
     @listen_webhook("ping")
     @listen_webhook("pong")
