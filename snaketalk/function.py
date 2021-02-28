@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import logging
 import re
-import traceback
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Sequence
 
@@ -238,8 +238,7 @@ class WebHookFunction(Function):
         try:
             self.function(self.plugin, event)
         except Exception:
-            traceback.print_exc()
-            # TODO: log the error trace instead of printing it
+            logging.error(exc_info=True)
         finally:
             return ensure_response()
 
