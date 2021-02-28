@@ -34,13 +34,15 @@ class WebHookServer:
 
     def __init__(
         self,
-        settings: Settings,
+        url: str,
+        port: int,
         event_queue: Optional[Queue] = None,
         response_queue: Optional[Queue] = None,
     ):
         self.app = web.Application()
         self.app_runner = web.AppRunner(self.app)
-        self.settings = settings
+        self.url = url
+        self.port = port
         self.running = False
 
         # Create queues if necessary.
@@ -52,11 +54,9 @@ class WebHookServer:
         self.app.add_routes([web.post("/hooks/{webhook_id}", self.process_webhook)])
 
     async def start(self):
-        webhook_host_ip = self.settings.WEBHOOK_HOST_URL.replace("http://", "")
+        webhook_host_ip = self.url.replace("http://", "")
         await self.app_runner.setup()
-        site = web.TCPSite(
-            self.app_runner, webhook_host_ip, self.settings.WEBHOOK_HOST_PORT
-        )
+        site = web.TCPSite(self.app_runner, webhook_host_ip, self.port)
         await site.start()
         self.running = True
 

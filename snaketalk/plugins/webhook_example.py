@@ -2,7 +2,7 @@ from snaketalk.driver import Driver
 from snaketalk.function import listen_to, listen_webhook
 from snaketalk.plugins.base import Plugin
 from snaketalk.settings import Settings
-from snaketalk.wrappers import ActionEvent, Message
+from snaketalk.wrappers import ActionEvent, Message, WebHookEvent
 
 
 class WebHookExample(Plugin):
@@ -16,17 +16,25 @@ class WebHookExample(Plugin):
 
     @listen_webhook("ping")
     @listen_webhook("pong")
-    async def action_listener(self, event: ActionEvent):
-        self.driver.respond_to_web(
-            event,
-            {
-                "update": {"message": event.context["text"], "props": {}},
-                "ephemeral_text": "You updated the post!",
-            },
-        )
+    async def action_listener(self, event: WebHookEvent):
+        """Listens to webhooks 'ping' and 'pong', and either updates the originating
+        action post or sends a channel message to indicate that the webhook works."""
+        if isinstance(event, ActionEvent):
+            self.driver.respond_to_web(
+                event,
+                {
+                    "update": {"message": event.context["text"], "props": {}},
+                    "ephemeral_text": "You updated the post!",
+                },
+            )
+        else:
+            self.driver.create_post(
+                event.body["channel_id"], f"Webhook {event.webhook_id} triggered!"
+            )
 
     @listen_to("!button", direct_only=False)
     async def webhook_button(self, message: Message):
+        """Creates a button that will trigger a webhook depending on the choice."""
         self.driver.reply_to(
             message,
             "",
