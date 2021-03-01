@@ -1,48 +1,12 @@
 import time
-from typing import Dict
 
-import pytest
+from .utils import start_bot  # noqa, only imported so that the bot is started
+from .utils import MAIN_BOT_ID, OFF_TOPIC_ID, RESPONSE_TIMEOUT, TEAM_ID
+from .utils import driver as driver_fixture
+from .utils import expect_reply
 
-from snaketalk import Bot, Settings
-from snaketalk.driver import Driver
-
-from .utils import start_bot  # noqa, we only import this so that the bot is started
-
-OFF_TOPIC_ID = "ahzqezf33jny9mpst758dnaahw"  # Channel id
-TEAM_ID = "h6aje7ujgpggjrtik6f3m8fjah"
-MAIN_BOT_ID = "hjawadm1ntdxzefd193x8mos7a"
-RESPONSE_TIMEOUT = 10
-
-
-@pytest.fixture(scope="session")
-def driver():
-    return Bot(
-        settings=Settings(
-            MATTERMOST_URL="http://127.0.0.1",
-            BOT_TOKEN="7arqwr6kzibc58zomct9ndfk1e",
-            MATTERMOST_PORT=8065,
-            SSL_VERIFY=False,
-        ),
-        plugins=[],  # We only use this to send messages, not to reply to anything.
-    ).driver
-
-
-def expect_reply(driver: Driver, post: Dict, wait=RESPONSE_TIMEOUT, retries=1):
-    """Utility function to specify we expect some kind of reply after `wait` seconds."""
-    reply = None
-    for _ in range(retries + 1):
-        time.sleep(wait)
-        thread_info = driver.get_thread(post["id"])
-        print(thread_info)
-        reply_id = thread_info["order"][-1]
-        if reply_id != post["id"]:
-            reply = thread_info["posts"][reply_id]
-            break
-
-    if not reply:
-        raise ValueError("Expected a response, but didn't get any!")
-
-    return reply
+# Hacky workaround to import the fixture without linting errors
+driver = driver_fixture
 
 
 # Verifies that the bot is running and listening to this non-targeted message
@@ -142,14 +106,12 @@ class TestExamplePlugin:
         file = driver.files.get_file(file["id"])
         assert file.content.decode("utf-8") == "Hello from this file!"
 
-    def test_webhook(self, driver):
+    def test_trigger_webhook(self, driver):
         original_post = driver.create_post(OFF_TOPIC_ID, "!hello_webhook")
         time.sleep(RESPONSE_TIMEOUT)
 
         message = None
-        for id, post in driver.posts.get_posts_for_channel(OFF_TOPIC_ID)[
-            "posts"
-        ].items():
+        for post in driver.posts.get_posts_for_channel(OFF_TOPIC_ID)["posts"].values():
             if (
                 post["message"].lower() == "hello?"
                 and post["create_at"] > original_post["create_at"]

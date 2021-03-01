@@ -1,79 +1,13 @@
-import logging
 import queue
-import threading
-import time
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
 import mattermostdriver
+from aiohttp.client import ClientSession
 
-from snaketalk.message import Message
-from snaketalk.scheduler import default_scheduler
-
-
-class ThreadPool(object):
-    def __init__(self, num_workers: int):
-        """Threadpool class to easily specify a number of worker threads and assign work
-        to any of them.
-
-        Arguments:
-        - num_workers: int, how many threads to run simultaneously.
-        """
-        self.num_workers = num_workers
-        self.alive = False
-        self._queue = queue.Queue()
-        self._busy_workers = queue.Queue()
-        self._threads = []
-
-    def add_task(self, function, *args):
-        self._queue.put((function, args))
-
-    def get_busy_workers(self):
-        return self._busy_workers.qsize()
-
-    def start(self):
-        self.alive = True
-        # Spawn num_workers threads that will wait for work to be added to the queue
-        for _ in range(self.num_workers):
-            worker = threading.Thread(target=self.handle_work)
-            self._threads.append(worker)
-            worker.start()
-
-    def stop(self):
-        """Signals all threads that they should stop and waits for them to finish."""
-        self.alive = False
-        # Signal every thread that it's time to stop
-        for _ in range(self.num_workers):
-            self._queue.put((self._stop_thread, tuple()))
-        # Wait for each of them to finish
-        print("Stopping threadpool, waiting for threads...")
-        for thread in self._threads:
-            thread.join()
-        print("Threadpool stopped.")
-
-    def _stop_thread(self):
-        """Used to stop individual threads."""
-        return
-
-    def handle_work(self):
-        while self.alive:
-            # Wait for a new task (blocking)
-            function, arguments = self._queue.get()
-            # Notify the pool that we started working
-            self._busy_workers.put(1)
-            function(*arguments)
-            # Notify the pool that we finished working
-            self._queue.task_done()
-            self._busy_workers.get()
-
-    def start_scheduler_thread(self, trigger_period: float):
-        def run_pending():
-            logging.info("Scheduler thread started.")
-            while self.alive:
-                time.sleep(trigger_period)
-                default_scheduler.run_pending()
-
-        self.add_task(run_pending)
+from snaketalk.threadpool import ThreadPool
+from snaketalk.webhook_server import WebHookServer
+from snaketalk.wrappers import Message, WebHookEvent
 
 
 class Driver(mattermostdriver.Driver):
@@ -89,11 +23,18 @@ class Driver(mattermostdriver.Driver):
         """
         super().__init__(*args, **kwargs)
         self.threadpool = ThreadPool(num_workers=num_threads)
+        # Queue to communicate with the WebHookServer
+        self.response_queue: Optional[queue.Queue] = None
+        self.webhook_url = None
 
     def login(self, *args, **kwargs):
         super().login(*args, **kwargs)
         self.user_id = self.client._userid
         self.username = self.client._username
+
+    def register_webhook_server(self, server: WebHookServer):
+        self.response_queue = server.response_queue
+        self.webhook_url = f"{server.url}:{server.port}/hooks"
 
     def create_post(
         self,
@@ -195,6 +136,22 @@ class Driver(mattermostdriver.Driver):
             file_paths=file_paths,
             props=props,
         )
+
+    def respond_to_web(self, event: WebHookEvent, response):
+        """Send a web response to the given WebHookEvent."""
+        self.response_queue.put((event.request_id, response))
+        event.responded = True
+
+    async def trigger_own_webhook(self, webhook_id: str, data: Dict):
+        """Triggers a a webhook with id webhook_id on the running WebHookServer."""
+        if not self.webhook_url:
+            raise ValueError("The Driver is not aware of any running webhook server!")
+
+        async with ClientSession() as session:
+            return await session.post(
+                f"{self.webhook_url}/{webhook_id}",
+                json=data,
+            )
 
     def upload_files(
         self, file_paths: Sequence[Union[str, Path]], channel_id: str

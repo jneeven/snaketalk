@@ -6,9 +6,9 @@ from pathlib import Path
 import click
 import mattermostdriver
 
-from snaketalk.message import Message
 from snaketalk.plugins.base import Plugin, listen_to
 from snaketalk.scheduler import schedule
+from snaketalk.wrappers import Message
 
 
 class ExamplePlugin(Plugin):

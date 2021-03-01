@@ -4,9 +4,6 @@ import pytest
 
 from snaketalk.driver import ThreadPool
 
-"""This only tests the ThreadPool for now, since the driver will be tested in the
-integration test."""
-
 
 @pytest.fixture(scope="function")
 def threadpool():
