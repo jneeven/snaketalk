@@ -223,7 +223,7 @@ class WebHookFunction(Function):
             )
 
     def __call__(self, event: WebHookEvent):
-        # Signal the WebHookServer that it we won't be sending a response.
+        # Signal the WebHookServer that we won't be sending a response.
         def ensure_response(*args):
             if not event.responded:
                 self.plugin.driver.respond_to_web(event, NoResponse)
@@ -238,7 +238,7 @@ class WebHookFunction(Function):
         try:
             self.function(self.plugin, event)
         except Exception:
-            logging.error(exc_info=True)
+            logging.exception("Exception occurred: ")
         finally:
             return ensure_response()
 
