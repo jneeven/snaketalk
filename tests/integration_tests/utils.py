@@ -19,7 +19,7 @@ from snaketalk.driver import Driver
 OFF_TOPIC_ID = "ahzqezf33jny9mpst758dnaahw"  # Channel id
 TEAM_ID = "h6aje7ujgpggjrtik6f3m8fjah"
 MAIN_BOT_ID = "hjawadm1ntdxzefd193x8mos7a"
-RESPONSE_TIMEOUT = 10
+RESPONSE_TIMEOUT = 15
 
 
 def expect_reply(driver: Driver, post: Dict, wait=RESPONSE_TIMEOUT, retries=1):

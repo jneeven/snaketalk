@@ -2,9 +2,12 @@ import asyncio
 import time
 
 from .utils import start_bot  # noqa, only imported so that the bot is started
-from .utils import OFF_TOPIC_ID, RESPONSE_TIMEOUT
-from .utils import driver as driver_fixture
-from .utils import expect_reply
+from .utils import (
+    OFF_TOPIC_ID,
+    RESPONSE_TIMEOUT,
+    driver as driver_fixture,
+    expect_reply,
+)
 
 # Hacky workaround to import the fixture without linting errors
 driver = driver_fixture
@@ -29,7 +32,7 @@ class TestWebHookExample:
 
     def test_button(self, driver):
         post = driver.create_post(OFF_TOPIC_ID, "!button")
-        reply = expect_reply(driver, post)
+        reply = expect_reply(driver, post, retries=2)
         assert len(reply["props"]["attachments"]) == 1
         attachment = reply["props"]["attachments"][0]
         assert attachment["actions"] == [
