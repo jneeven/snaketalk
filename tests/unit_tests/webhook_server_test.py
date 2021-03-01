@@ -21,7 +21,7 @@ class TestWebHookServer:
     def test_start(self, threadpool):
         # Test server startup with a different port so it won't clash with the
         # integration tests
-        server = WebHookServer(Settings(WEBHOOK_HOST_PORT=3281))
+        server = WebHookServer(port=3281, url=Settings().WEBHOOK_HOST_URL)
         threadpool.start_webhook_server_thread(server)
         threadpool.start()
         time.sleep(0.5)
@@ -68,7 +68,7 @@ class TestWebHookServer:
             async with ClientSession() as session:
                 try:
                     response = await session.post(
-                        f"{server.settings.WEBHOOK_HOST_URL}:{server.settings.WEBHOOK_HOST_PORT}/hooks/test_hook",
+                        f"{server.url}:{server.port}/hooks/test_hook",
                         json=data,
                         timeout=1,
                     )
