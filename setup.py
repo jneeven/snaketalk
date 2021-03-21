@@ -9,7 +9,6 @@ setup(
     name="snaketalk",
     version="0.0.1",
     author="Jelmer Neeven",
-    author_email="jelmer@plumerai.com",
     license="MIT",
     description="A simple python bot for Mattermost",
     keywords="chat bot mattermost python",
